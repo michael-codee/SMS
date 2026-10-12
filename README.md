@@ -72,6 +72,10 @@ Supabase runs PostgreSQL, so nothing in the app changes. Railway (or any host) s
 
 On Supabase, the connection is always encrypted. The server also removes the access Supabase's public web API (the `anon` and `authenticated` roles) gets to new tables, every time it starts, and the database rules show those roles nothing. Never put the app's tables behind Supabase's API keys. The Supabase free plan pauses idle projects and keeps no backups, so use a paid plan for real pupil records.
 
+## Install it like software
+
+Once the site is live on HTTPS, anyone can install it: an **Install app** button appears on the sign-in page and in the menu (on iPhone and iPad: Share, then **Add to Home Screen**). It then opens from a desktop or home-screen icon in its own window, named after the school, and updates itself. It needs the internet; without it, it shows a "No internet connection" screen. Only the app's own files are kept on the device, never school records.
+
 ## Database user
 
 The server creates a database role called `sms_app` and switches to it for every school request, so the database itself enforces the walls between schools. That needs a database user that may create roles (Railway's default `postgres` user can). If it cannot, the server still starts and still separates schools in its own code, and the platform page shows a warning.
