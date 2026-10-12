@@ -19,17 +19,39 @@ types.setTypeParser(1082, (v) => v);
 let pool = null;
 let canSetRole = false;
 
+/*
+ * SSL: on when the address asks for it (sslmode), when PGSSL=1, or for Supabase, which needs it.
+ * The connection is encrypted; the server certificate is checked only when DATABASE_CA_CERT holds
+ * the host's CA certificate (Supabase: Project Settings, Database, SSL). sslmode is removed from the
+ * address because the driver would otherwise demand a publicly signed certificate.
+ */
+function sslOptions(connectionString) {
+  let u;
+  try { u = new URL(connectionString); } catch (e) { return { connectionString, ssl: process.env.PGSSL === "1" ? { rejectUnauthorized: false } : undefined }; }
+  const mode = u.searchParams.get("sslmode");
+  const wanted = (mode && mode !== "disable") || process.env.PGSSL === "1" || /\.supabase\.(co|com)$/.test(u.hostname);
+  for (const k of ["sslmode", "sslrootcert", "sslcert", "sslkey", "uselibpqcompat"]) u.searchParams.delete(k);
+  const ca = process.env.DATABASE_CA_CERT;
+  const ssl = !wanted ? undefined : ca ? { ca: ca.replace(/\\n/g, "\n"), rejectUnauthorized: true } : { rejectUnauthorized: false };
+  return { connectionString: u.toString(), ssl };
+}
+
 function connect(connectionString) {
   if (!connectionString) throw new Error("DATABASE_URL is not set. See README.md.");
-  const needsSsl = /sslmode=require/.test(connectionString) || process.env.PGSSL === "1";
+  const opts = sslOptions(connectionString);
   pool = new Pool({
-    connectionString,
+    connectionString: opts.connectionString,
     max: Number(process.env.PG_POOL_MAX || 10),
-    ssl: needsSsl ? { rejectUnauthorized: false } : undefined,
+    ssl: opts.ssl,
     idleTimeoutMillis: 30000,
+    connectionTimeoutMillis: 10000,
   });
   pool.on("error", (e) => console.error("[db] idle client error:", e.message));
   return pool;
+}
+
+function connected() {
+  return pool !== null;
 }
 
 function getPool() {
@@ -83,10 +105,29 @@ async function migrate() {
     });
     console.log(`[db] applied migration ${f}`);
   }
+  await lockDown();
   canSetRole = await probeRole();
   if (!canSetRole) {
     console.warn("[db] WARNING: cannot switch to role sms_app; database-level school isolation is OFF. " +
       "The app's own school filters still apply. Use a database user with CREATEROLE to enable it.");
+  }
+}
+
+/*
+ * Some hosts give every new table to roles of their own (Supabase: anon and authenticated, used by its
+ * public web API). This app never uses them, so take that access away on every start.
+ */
+async function lockDown() {
+  const roles = (await query("SELECT rolname FROM pg_roles WHERE rolname IN ('anon', 'authenticated')")).rows.map((r) => r.rolname);
+  for (const who of ["PUBLIC", ...roles.map((r) => `"${r}"`)]) {
+    await query(`REVOKE ALL ON ALL TABLES IN SCHEMA public FROM ${who}`);
+    await query(`REVOKE ALL ON ALL SEQUENCES IN SCHEMA public FROM ${who}`);
+    try {
+      await query(`ALTER DEFAULT PRIVILEGES IN SCHEMA public REVOKE ALL ON TABLES FROM ${who}`);
+      await query(`ALTER DEFAULT PRIVILEGES IN SCHEMA public REVOKE ALL ON SEQUENCES FROM ${who}`);
+    } catch (e) {
+      console.warn(`[db] could not change default privileges for ${who}: ${e.message}`);
+    }
   }
 }
 
@@ -108,4 +149,4 @@ async function close() {
   pool = null;
 }
 
-module.exports = { connect, query, tx, withSchool, migrate, close, getPool, rowSecurityEnabled };
+module.exports = { connect, connected, sslOptions, query, tx, withSchool, migrate, close, getPool, rowSecurityEnabled };

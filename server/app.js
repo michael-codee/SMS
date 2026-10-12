@@ -14,6 +14,7 @@ const backup = require("./backup");
 const platform = require("./platform");
 const settingsLib = require("./settings");
 const { HttpError, parseDataUrl } = require("./util");
+const { status } = require("./status");
 
 const DIST = path.join(__dirname, "..", "web", "dist");
 const TRUST_PROXY = process.env.TRUST_PROXY === "1" || !!process.env.RAILWAY_ENVIRONMENT;
@@ -163,8 +164,30 @@ async function platformPrincipal(req, opts) {
   return p;
 }
 
+/* ---------- installable app ---------- */
+/* The app's description for "Install". With ?school=CODE the installed app carries that school's name. */
+async function manifest(code) {
+  const base = {
+    name: "School Management System", short_name: "School System", start_url: "/", scope: "/",
+    display: "standalone", background_color: "#FAF7F0", theme_color: "#1B3A2E",
+    icons: [
+      { src: "/icon-192.png", sizes: "192x192", type: "image/png" },
+      { src: "/icon-512.png", sizes: "512x512", type: "image/png" },
+      { src: "/icon-maskable-512.png", sizes: "512x512", type: "image/png", purpose: "maskable" },
+    ],
+  };
+  if (!code || !/^[A-Za-z0-9-]{2,20}$/.test(code)) return base;
+  const s = (await db.query("SELECT code, name, settings FROM schools WHERE lower(code) = lower($1) AND active", [code])).rows[0];
+  if (!s) return base;
+  const st = settingsLib.full(s.settings);
+  return {
+    ...base, id: `/?school=${s.code}`, name: s.name, short_name: s.name.length <= 12 ? s.name : s.code,
+    start_url: `/?school=${encodeURIComponent(s.code)}`, theme_color: st.colors.primary,
+  };
+}
+
 /* ---------- static files ---------- */
-const STATIC_TYPES = { ".js": "text/javascript; charset=utf-8", ".css": "text/css; charset=utf-8", ".png": "image/png", ".svg": "image/svg+xml", ".ico": "image/x-icon", ".webmanifest": "application/manifest+json" };
+const STATIC_TYPES = { ".js": "text/javascript; charset=utf-8", ".css": "text/css; charset=utf-8", ".png": "image/png", ".svg": "image/svg+xml", ".ico": "image/x-icon", ".webmanifest": "application/manifest+json", ".html": "text/html; charset=utf-8" };
 let indexHtml = null;
 
 function serveStatic(req, res, pathname) {
@@ -172,7 +195,9 @@ function serveStatic(req, res, pathname) {
     const file = path.join(DIST, pathname);
     if (file.startsWith(DIST + path.sep) && fs.existsSync(file) && fs.statSync(file).isFile()) {
       const type = STATIC_TYPES[path.extname(file)] || "application/octet-stream";
-      return send(req, res, 200, fs.readFileSync(file), { "Content-Type": type, "Cache-Control": "public, max-age=31536000, immutable" });
+      // hashed app code never changes; everything else (service worker, offline page, icons) is checked each time
+      const cache = /^\/app\.[0-9a-f]+\.js$/.test(pathname) ? "public, max-age=31536000, immutable" : "no-cache";
+      return send(req, res, 200, fs.readFileSync(file), { "Content-Type": type, "Cache-Control": cache });
     }
   }
   if (!indexHtml) {
@@ -193,6 +218,16 @@ function attachment(name) {
   return `attachment; filename="${name.replace(/[^A-Za-z0-9._-]/g, "_")}"`;
 }
 
+function setupPage(problem) {
+  const esc = (t) => t.replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c]);
+  return `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<meta http-equiv="refresh" content="15"><title>Setting up - School Management System</title></head>
+<body style="font-family:system-ui,sans-serif;max-width:560px;margin:60px auto;padding:0 16px;color:#1B3A2E;background:#FAF7F0">
+<h1 style="font-size:22px">The school system is not ready yet</h1>
+<p style="font-size:16px;line-height:1.5">${esc(problem)}</p>
+<p style="color:#666;font-size:14px">This page checks again every 15 seconds.</p></body></html>`;
+}
+
 /* ---------- routes ---------- */
 async function route(req, res) {
   const url = new URL(req.url, "http://localhost");
@@ -200,6 +235,17 @@ async function route(req, res) {
   const m = req.method;
   const ip = clientIp(req);
   const ctx = { ip };
+
+  // Until the database is ready: stay up for the health check, and explain the problem to visitors.
+  if (!status.ready) {
+    if (p === "/healthz") return send(req, res, 200, "starting: " + status.problem, { "Content-Type": "text/plain" });
+    if (p.startsWith("/api/")) throw new HttpError(503, status.problem);
+    return send(req, res, 503, setupPage(status.problem), { "Content-Type": "text/html; charset=utf-8", "Retry-After": "10" });
+  }
+
+  if (m === "GET" && p === "/manifest.webmanifest") {
+    return send(req, res, 200, JSON.stringify(await manifest(url.searchParams.get("school"))), { "Content-Type": "application/manifest+json", "Cache-Control": "no-cache" });
+  }
 
   if (p === "/healthz") {
     await db.query("SELECT 1");

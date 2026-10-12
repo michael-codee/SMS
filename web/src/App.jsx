@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback, useContext, createContext } from "react";
 import { api, ApiError, readImageFile } from "./api.js";
+import { InstallButton, useSchoolManifest } from "./install.jsx";
 import { SchoolSetupView } from "./SchoolSetup.jsx";
 
 /* ============================================================
@@ -806,6 +807,7 @@ function rememberedSchoolCode() {
 function LoginScreen({ onLoggedIn, notice, onDismissNotice, onBrand }) {
   const [schoolCode, setSchoolCode] = useState(rememberedSchoolCode);
   const [brand, setBrand] = useState(null);
+  useSchoolManifest(brand?.code);
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
@@ -874,6 +876,7 @@ function LoginScreen({ onLoggedIn, notice, onDismissNotice, onBrand }) {
           {error && <div className="form-error" role="alert">{error}</div>}
           <button type="button" className="btn-primary btn-full" disabled={busy} onClick={submit}>{busy ? "Signing in…" : "Sign in"}</button>
           <p className="muted" style={{ fontSize: 12, margin: 0, textAlign: "center" }}>Forgot your password? Ask your school's Proprietor to reset it.</p>
+          <InstallButton block />
         </div>
       </div>
     </div>
@@ -950,6 +953,7 @@ const NAV = {
 
 function Shell({ user, view, setView, onLogout, onChangePassword, children }) {
   const school = useSchool();
+  useSchoolManifest(school?.code);
   const items = NAV[user.role];
   const [collapsed, setCollapsed] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
@@ -988,6 +992,7 @@ function Shell({ user, view, setView, onLogout, onChangePassword, children }) {
               <div className="who-role">{user.title}</div>
             </div>
           )}
+          {!collapsed && <InstallButton />}
           {!collapsed && <button className="btn-ghost btn-small" onClick={onChangePassword}>Change password</button>}
           <button className="btn-ghost btn-small" onClick={onLogout}>{collapsed ? "⎋" : "Sign out"}</button>
         </div>
@@ -2771,10 +2776,10 @@ export default function App() {
   }, [status, timeoutMinutes, signedOut]);
 
   const brand = db
-    ? { name: db.school.name, motto: db.settings.motto, location: db.settings.location, logoUrl: db.school.logoUrl, colors: db.settings.colors }
+    ? { code: db.school.code, name: db.school.name, motto: db.settings.motto, location: db.settings.location, logoUrl: db.school.logoUrl, colors: db.settings.colors }
     : loginBrand
-      ? { name: loginBrand.name, motto: loginBrand.motto, location: loginBrand.location, logoUrl: loginBrand.logoUrl, colors: loginBrand.colors }
-      : { name: "School Management System", motto: "", location: "", logoUrl: "", colors: null };
+      ? { code: loginBrand.code, name: loginBrand.name, motto: loginBrand.motto, location: loginBrand.location, logoUrl: loginBrand.logoUrl, colors: loginBrand.colors }
+      : { code: "", name: "School Management System", motto: "", location: "", logoUrl: "", colors: null };
 
   useEffect(() => {
     document.title = brand.name === "School Management System" ? brand.name : `${brand.name} — School Management System`;
