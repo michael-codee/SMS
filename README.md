@@ -39,6 +39,7 @@ One web app that many schools use at the same time. Each school signs in with it
 | `PORT` | No | Defaults to 3000. Railway sets it for you. |
 | `TRUST_PROXY` | No | `1` when behind a proxy that sets `X-Forwarded-*`. Automatic on Railway. |
 | `COOKIE_SECURE` | No | `1` to always mark the sign-in cookie as HTTPS-only. |
+| `DATABASE_CA_CERT` | No | The database's CA certificate (PEM text). When set, the server checks the database's certificate as well as encrypting. |
 | `PGSSL` | No | `1` to connect to the database over SSL (or put `sslmode=require` in the address). |
 | `PG_POOL_MAX` | No | Most database connections at once (default 10). |
 
@@ -59,6 +60,17 @@ Each school can then use `https://<your-domain>/?school=<CODE>`, which fills in 
 ### If something is not set up right
 
 The server stays online even when a setting is wrong, so the health check passes. Open the site and it says what to fix, for example a missing `DATABASE_URL`. A rejected `PLATFORM_ADMIN_PASSWORD` (too short, too common, or containing the username) is explained on the `/platform` sign-in page. The deploy logs show the same messages.
+
+## Use Supabase as the database (instead of Railway's PostgreSQL)
+
+Supabase runs PostgreSQL, so nothing in the app changes. Railway (or any host) still runs the app itself.
+
+1. Create a Supabase project. Choose the region closest to the schools and write down the database password.
+2. In Supabase, click **Connect** and copy the **Session pooler** connection string (port 5432). Replace `[YOUR-PASSWORD]` with the database password. The direct connection string does not work from Railway.
+3. In Railway, set the app's `DATABASE_URL` to that string. Remove Railway's PostgreSQL service if you added one.
+4. Optional: to also check the database's certificate, download it from Supabase (**Project Settings**, **Database**, **SSL Configuration**) and paste its text into `DATABASE_CA_CERT`.
+
+On Supabase, the connection is always encrypted. The server also removes the access Supabase's public web API (the `anon` and `authenticated` roles) gets to new tables, every time it starts, and the database rules show those roles nothing. Never put the app's tables behind Supabase's API keys. The Supabase free plan pauses idle projects and keeps no backups, so use a paid plan for real pupil records.
 
 ## Database user
 
