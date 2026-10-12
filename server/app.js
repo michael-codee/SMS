@@ -14,6 +14,7 @@ const backup = require("./backup");
 const platform = require("./platform");
 const settingsLib = require("./settings");
 const { HttpError, parseDataUrl } = require("./util");
+const { status } = require("./status");
 
 const DIST = path.join(__dirname, "..", "web", "dist");
 const TRUST_PROXY = process.env.TRUST_PROXY === "1" || !!process.env.RAILWAY_ENVIRONMENT;
@@ -193,6 +194,16 @@ function attachment(name) {
   return `attachment; filename="${name.replace(/[^A-Za-z0-9._-]/g, "_")}"`;
 }
 
+function setupPage(problem) {
+  const esc = (t) => t.replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c]);
+  return `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<meta http-equiv="refresh" content="15"><title>Setting up - School Management System</title></head>
+<body style="font-family:system-ui,sans-serif;max-width:560px;margin:60px auto;padding:0 16px;color:#1B3A2E;background:#FAF7F0">
+<h1 style="font-size:22px">The school system is not ready yet</h1>
+<p style="font-size:16px;line-height:1.5">${esc(problem)}</p>
+<p style="color:#666;font-size:14px">This page checks again every 15 seconds.</p></body></html>`;
+}
+
 /* ---------- routes ---------- */
 async function route(req, res) {
   const url = new URL(req.url, "http://localhost");
@@ -200,6 +211,13 @@ async function route(req, res) {
   const m = req.method;
   const ip = clientIp(req);
   const ctx = { ip };
+
+  // Until the database is ready: stay up for the health check, and explain the problem to visitors.
+  if (!status.ready) {
+    if (p === "/healthz") return send(req, res, 200, "starting: " + status.problem, { "Content-Type": "text/plain" });
+    if (p.startsWith("/api/")) throw new HttpError(503, status.problem);
+    return send(req, res, 503, setupPage(status.problem), { "Content-Type": "text/html; charset=utf-8", "Retry-After": "10" });
+  }
 
   if (p === "/healthz") {
     await db.query("SELECT 1");

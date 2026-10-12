@@ -16,6 +16,7 @@ const db = require("./db");
 const auth = require("./auth");
 const backup = require("./backup");
 const { handler } = require("./app");
+const { status, explain } = require("./status");
 
 const PORT = Number(process.env.PORT || 3000);
 const SNAPSHOT_EVERY_MS = 24 * 3600 * 1000;
@@ -34,15 +35,38 @@ async function dailySnapshots() {
   await db.query("DELETE FROM sessions WHERE expires_at < now()");
 }
 
-async function main() {
-  db.connect(process.env.DATABASE_URL);
-  await db.migrate();
-  await auth.bootstrapPlatformAdmin();
+/* Connect and prepare the database, retrying until it works. */
+async function prepare() {
+  for (let attempt = 1; ; attempt++) {
+    try {
+      if (!db.connected()) db.connect(process.env.DATABASE_URL);
+      await db.migrate();
+      break;
+    } catch (e) {
+      status.problem = explain(e);
+      console.error(`[sms] not ready (attempt ${attempt}): ${e.message}`);
+      console.error(`[sms] ${status.problem}`);
+      await new Promise((r) => setTimeout(r, Math.min(30000, 2000 * attempt)));
+    }
+  }
+  try {
+    await auth.bootstrapPlatformAdmin();
+  } catch (e) {
+    status.adminProblem = e.message;
+    console.error(`[auth] platform administrator not created: ${e.message}`);
+  }
+  status.ready = true;
+  status.problem = null;
+  console.log("[sms] ready");
+}
 
+async function main() {
   const server = http.createServer(handler);
   server.headersTimeout = 30000;
   server.requestTimeout = 120000;
   server.listen(PORT, () => console.log(`[sms] listening on port ${PORT}`));
+
+  await prepare();
 
   dailySnapshots().catch((e) => console.error("[backup]", e.message));
   setInterval(() => dailySnapshots().catch((e) => console.error("[backup]", e.message)), 3600 * 1000).unref();

@@ -195,6 +195,13 @@ async function platformLogin({ username, password, ip, userAgent }) {
   if (!username || !password) throw new HttpError(400, "Enter your username and password.");
   const u = (await db.query("SELECT * FROM platform_admins WHERE lower(username) = lower($1)", [username])).rows[0];
   if (!u) {
+    const none = (await db.query("SELECT count(*)::int AS n FROM platform_admins")).rows[0].n === 0;
+    if (none) {
+      const { status } = require("./status");
+      throw new HttpError(503, status.adminProblem
+        ? `No platform administrator was created because PLATFORM_ADMIN_PASSWORD was not accepted: ${status.adminProblem} Change it in Railway's Variables; the server restarts by itself.`
+        : "No platform administrator exists yet. Add PLATFORM_ADMIN_USERNAME and PLATFORM_ADMIN_PASSWORD in Railway's Variables; the server restarts by itself.");
+    }
     noteIpFailure(ip);
     await dummyVerify(password);
     throw new HttpError(401, "Username or password is incorrect.");

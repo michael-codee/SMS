@@ -27,9 +27,14 @@ function connect(connectionString) {
     max: Number(process.env.PG_POOL_MAX || 10),
     ssl: needsSsl ? { rejectUnauthorized: false } : undefined,
     idleTimeoutMillis: 30000,
+    connectionTimeoutMillis: 10000,
   });
   pool.on("error", (e) => console.error("[db] idle client error:", e.message));
   return pool;
+}
+
+function connected() {
+  return pool !== null;
 }
 
 function getPool() {
@@ -108,4 +113,4 @@ async function close() {
   pool = null;
 }
 
-module.exports = { connect, query, tx, withSchool, migrate, close, getPool, rowSecurityEnabled };
+module.exports = { connect, connected, query, tx, withSchool, migrate, close, getPool, rowSecurityEnabled };

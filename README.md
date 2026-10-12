@@ -56,6 +56,10 @@ One web app that many schools use at the same time. Each school signs in with it
 
 Each school can then use `https://<your-domain>/?school=<CODE>`, which fills in the school code for them.
 
+### If something is not set up right
+
+The server stays online even when a setting is wrong, so the health check passes. Open the site and it says what to fix, for example a missing `DATABASE_URL`. A rejected `PLATFORM_ADMIN_PASSWORD` (too short, too common, or containing the username) is explained on the `/platform` sign-in page. The deploy logs show the same messages.
+
 ## Database user
 
 The server creates a database role called `sms_app` and switches to it for every school request, so the database itself enforces the walls between schools. That needs a database user that may create roles (Railway's default `postgres` user can). If it cannot, the server still starts and still separates schools in its own code, and the platform page shows a warning.

@@ -31,7 +31,7 @@ async function dropDatabase(name) {
   await c.end();
 }
 
-function startServer(dbUrl, port, extraEnv = {}) {
+function startServer(dbUrl, port, extraEnv = {}, waitFor = "[sms] ready") {
   return new Promise((resolve, reject) => {
     const proc = spawn(process.execPath, [path.join(__dirname, "..", "server", "index.js")], {
       env: { ...process.env, DATABASE_URL: dbUrl, PORT: String(port), PLATFORM_ADMIN_USERNAME: ADMIN_USER, PLATFORM_ADMIN_PASSWORD: ADMIN_PASS, RAILWAY_ENVIRONMENT: "", TRUST_PROXY: "", ...extraEnv },
@@ -40,10 +40,10 @@ function startServer(dbUrl, port, extraEnv = {}) {
     let out = "";
     const onData = (d) => {
       out += d.toString();
-      if (out.includes("listening on port")) resolve({ proc, logs: () => out });
+      if (out.includes(waitFor)) resolve({ proc, logs: () => out });
     };
     proc.stdout.on("data", onData);
-    proc.stderr.on("data", (d) => { out += d.toString(); });
+    proc.stderr.on("data", onData);
     proc.on("exit", (code) => reject(new Error(`server exited (${code}):\n${out}`)));
     setTimeout(() => reject(new Error("server did not start:\n" + out)), 15000);
   });
@@ -133,4 +133,4 @@ async function setup(extraEnv) {
   return { base, admin, school, signIn, pg, dbUrl: db.url, teardown, Browser, logs: server.logs };
 }
 
-module.exports = { setup, Browser };
+module.exports = { setup, Browser, startServer, createDatabase, dropDatabase };
