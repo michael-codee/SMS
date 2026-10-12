@@ -877,6 +877,7 @@ function LoginScreen({ onLoggedIn, notice, onDismissNotice, onBrand }) {
           <button type="button" className="btn-primary btn-full" disabled={busy} onClick={submit}>{busy ? "Signing in…" : "Sign in"}</button>
           <p className="muted" style={{ fontSize: 12, margin: 0, textAlign: "center" }}>Forgot your password? Ask your school's Proprietor to reset it.</p>
           <InstallButton block />
+          <p className="muted" style={{ fontSize: 12, margin: 0, textAlign: "center" }}><a href="/platform">Platform administrator sign-in</a> (no school code needed)</p>
         </div>
       </div>
     </div>
