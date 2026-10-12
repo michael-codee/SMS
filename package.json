@@ -1,0 +1,23 @@
+{
+  "name": "school-management-system",
+  "version": "2.0.0",
+  "description": "Multi-school School Management System: secure server, PostgreSQL database, React web app",
+  "private": true,
+  "license": "UNLICENSED",
+  "main": "server/index.js",
+  "scripts": {
+    "build": "node scripts/build.js",
+    "start": "node server/index.js",
+    "dev": "node scripts/build.js && node server/index.js",
+    "test": "node scripts/build.js && node --test --test-concurrency=1 \"test/*.test.js\""
+  },
+  "engines": { "node": ">=22" },
+  "dependencies": {
+    "pg": "^8.13.1"
+  },
+  "devDependencies": {
+    "esbuild": "^0.25.0",
+    "react": "^19.2.0",
+    "react-dom": "^19.2.0"
+  }
+}
