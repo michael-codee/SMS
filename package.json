@@ -1,7 +1,7 @@
 {
   "name": "school-management-system",
   "version": "2.0.0",
-  "description": "Multi-school School Management System: secure server, PostgreSQL database, React web app",
+  "description": "Multi-school Elite Smart School Systems: secure server, PostgreSQL database, React web app",
   "private": true,
   "license": "UNLICENSED",
   "main": "server/index.js",

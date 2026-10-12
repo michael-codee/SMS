@@ -26,7 +26,7 @@ test("the install description is generic, or carries the school's name when give
   assert.equal(school.name, "TISL School");
   assert.equal(school.start_url, "/?school=TISL");
   const unknown = await (await fetch(env.base + "/manifest.webmanifest?school=NOPE")).json();
-  assert.equal(unknown.name, "School Management System");
+  assert.equal(unknown.name, "Elite Smart School Systems");
 });
 
 test("the service worker and offline page are served fresh; only hashed app code is cached long", async () => {

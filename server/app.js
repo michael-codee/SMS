@@ -168,8 +168,8 @@ async function platformPrincipal(req, opts) {
 /* The app's description for "Install". With ?school=CODE the installed app carries that school's name. */
 async function manifest(code) {
   const base = {
-    name: "School Management System", short_name: "School System", start_url: "/", scope: "/",
-    display: "standalone", background_color: "#FAF7F0", theme_color: "#1B3A2E",
+    name: "Elite Smart School Systems", short_name: "Elite School", start_url: "/", scope: "/",
+    display: "standalone", background_color: "#FFFFFF", theme_color: "#0B4DA2",
     icons: [
       { src: "/icon-192.png", sizes: "192x192", type: "image/png" },
       { src: "/icon-512.png", sizes: "512x512", type: "image/png" },
@@ -221,9 +221,9 @@ function attachment(name) {
 function setupPage(problem) {
   const esc = (t) => t.replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c]);
   return `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
-<meta http-equiv="refresh" content="15"><title>Setting up - School Management System</title></head>
+<meta http-equiv="refresh" content="15"><title>Setting up - Elite Smart School Systems</title></head>
 <body style="font-family:system-ui,sans-serif;max-width:560px;margin:60px auto;padding:0 16px;color:#1B3A2E;background:#FAF7F0">
-<h1 style="font-size:22px">The school system is not ready yet</h1>
+<h1 style="font-size:22px">Elite Smart School Systems is not ready yet</h1>
 <p style="font-size:16px;line-height:1.5">${esc(problem)}</p>
 <p style="color:#666;font-size:14px">This page checks again every 15 seconds.</p></body></html>`;
 }

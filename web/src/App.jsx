@@ -2,9 +2,10 @@ import React, { useState, useEffect, useCallback, useContext, createContext } fr
 import { api, ApiError, readImageFile } from "./api.js";
 import { InstallButton, useSchoolManifest } from "./install.jsx";
 import { SchoolSetupView } from "./SchoolSetup.jsx";
+import { APP_NAME, APP_LOGO } from "./brand.js";
 
 /* ============================================================
-   SCHOOL MANAGEMENT SYSTEM — web app
+   ELITE SMART SCHOOL SYSTEMS — web app
    One app serves many schools. Everything a person sees comes from the
    server, already limited to their school and role (see server/projection.js);
    every change is sent to the server as an action (see server/actions.js).
@@ -27,7 +28,7 @@ function applySchoolCalendar(settings) {
 }
 
 /* Branding of the school currently shown: name, crest, motto, colours. */
-const SchoolContext = createContext({ name: "School Management System", motto: "", location: "", logoUrl: "", colors: {} });
+const SchoolContext = createContext({ name: APP_NAME, motto: "", location: "", logoUrl: APP_LOGO, colors: {} });
 const useSchool = () => useContext(SchoolContext);
 
 function totalScore(g) {
@@ -858,9 +859,9 @@ function LoginScreen({ onLoggedIn, notice, onDismissNotice, onBrand }) {
         <div className="login-brand">
           <Seal size={64} />
           <div>
-            <div className="brand-name">{brand ? brand.name.toUpperCase() : "SCHOOL MANAGEMENT SYSTEM"}</div>
+            <div className="brand-name">{brand ? brand.name.toUpperCase() : APP_NAME.toUpperCase()}</div>
             {brand?.motto && <div className="brand-motto">{brand.motto}</div>}
-            <div className="brand-sub">{brand ? "School Management System" : "Sign in with your school's code"}</div>
+            <div className="brand-sub">{brand ? APP_NAME : "Sign in with your school's code"}</div>
           </div>
         </div>
         <div className="login-form">
@@ -2779,10 +2780,10 @@ export default function App() {
     ? { code: db.school.code, name: db.school.name, motto: db.settings.motto, location: db.settings.location, logoUrl: db.school.logoUrl, colors: db.settings.colors }
     : loginBrand
       ? { code: loginBrand.code, name: loginBrand.name, motto: loginBrand.motto, location: loginBrand.location, logoUrl: loginBrand.logoUrl, colors: loginBrand.colors }
-      : { code: "", name: "School Management System", motto: "", location: "", logoUrl: "", colors: null };
+      : { code: "", name: APP_NAME, motto: "", location: "", logoUrl: APP_LOGO, colors: null };
 
   useEffect(() => {
-    document.title = brand.name === "School Management System" ? brand.name : `${brand.name} — School Management System`;
+    document.title = brand.name === APP_NAME ? brand.name : `${brand.name} — ${APP_NAME}`;
   }, [brand.name]);
 
   const close = () => setModal(null);
