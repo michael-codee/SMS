@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback } from "react";
 import { api, ApiError, readImageFile } from "./api.js";
 import { Panel, Modal, Pill, StatCard, formatTimestamp, CSS } from "./App.jsx";
+import { APP_NAME, APP_LOGO } from "./brand.js";
 
 
 /* Platform administration (at /platform): add schools, switch them on or off, recover a Proprietor's access. */
@@ -26,9 +27,10 @@ function Login({ onDone }) {
     <div className="login-screen">
       <div className="login-card">
         <div className="login-brand">
+          <img src={APP_LOGO} alt="" width={64} height={64} style={{ flexShrink: 0 }} />
           <div>
             <div className="brand-name">PLATFORM ADMINISTRATION</div>
-            <div className="brand-sub">School Management System</div>
+            <div className="brand-sub">{APP_NAME}</div>
           </div>
         </div>
         <div className="login-form">
@@ -153,7 +155,7 @@ export default function PlatformApp() {
     }
   }, []);
 
-  useEffect(() => { load(); document.title = "Platform administration — School Management System"; }, [load]);
+  useEffect(() => { load(); document.title = `Platform administration — ${APP_NAME}`; }, [load]);
 
   const run = async (fn) => {
     setError("");

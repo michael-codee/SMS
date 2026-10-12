@@ -1,4 +1,4 @@
-# School Management System
+# Elite Smart School Systems
 
 One web app that many schools use at the same time. Each school signs in with its own **school code**, sees only its own records, and sets its own name, crest, colours, terms, classes, subjects, marks breakdown and grade scale.
 
