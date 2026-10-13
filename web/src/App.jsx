@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback, useContext, createContext } from "react";
 import { api, ApiError, readImageFile } from "./api.js";
-import { InstallButton, useSchoolManifest } from "./install.jsx";
+import { InstallButton, isInstalled, useSchoolManifest } from "./install.jsx";
 import { SchoolSetupView } from "./SchoolSetup.jsx";
 import { APP_NAME, APP_LOGO } from "./brand.js";
 import { Icon, NAV_ICONS } from "./icons.jsx";
@@ -883,6 +883,7 @@ function LoginScreen({ onLoggedIn, notice, onDismissNotice, onBrand }) {
           <p className="muted" style={{ fontSize: 14.5, margin: 0, textAlign: "center" }}>Forgot your password? Ask your school's Proprietor to reset it.</p>
           {support && <p className="muted" style={{ fontSize: 14.5, margin: 0, textAlign: "center" }}>Need help? {support}</p>}
           <InstallButton block />
+          {isInstalled() && <p className="muted" style={{ fontSize: 13.5, margin: 0, textAlign: "center" }}><a className="text-link" href="/platform">Platform administrator sign-in</a> (no school code needed)</p>}
         </div>
       </div>
     </div>
