@@ -126,6 +126,10 @@ DEMO.secondary = { T: [
     ["Isata Turay", "JSS3", "Mr. Foday Turay", 3200, 800], ["Mohamed Kargbo", "SSS1", "Mrs. Yeanoh Kargbo", 3800, 3800],
     ["Aminata Koroma", "SSS2", "Mr. Sorie Koroma", 3800, 1900], ["Foday Kamara", "SSS3", "Mrs. Isatu Kamara", 4200, 2000],
   ] };
+DEMO.jss = { T: DEMO.secondary.T.filter((t) => t[1].startsWith("JSS")).map(([n, c]) => [n, c, ["English Language", "Mathematics", "Integrated Science"]]),
+  P: DEMO.secondary.P.filter((x) => x[1].startsWith("JSS")) };
+DEMO.sss = { T: DEMO.secondary.T.filter((t) => t[1].startsWith("SSS")),
+  P: DEMO.secondary.P.filter((x) => x[1].startsWith("SSS")) };
 DEMO.preprimary = { T: [
     ["Mrs. Aminata Sesay", "Nursery 1", ["Language & Literacy", "Numeracy", "Creative Arts"]],
     ["Mrs. Fatmata Bangura", "Nursery 2", ["Language & Literacy", "Numeracy", "Environmental Studies"]],
