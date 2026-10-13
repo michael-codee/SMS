@@ -391,6 +391,10 @@ async function route(req, res) {
     // an administrator given a temporary password chooses their own before anything else
     if (admin.must_change_password) throw new HttpError(403, "Choose a new password first.", { mustChangePassword: true });
     if (m === "GET" && p === "/api/platform/schools") return send(req, res, 200, await platform.listSchools());
+    if (m === "GET" && p === "/api/platform/schools.csv") {
+      return send(req, res, 200, await platform.schoolsCsv(admin, ip), {
+        "Content-Type": "text/csv; charset=utf-8", "Content-Disposition": attachment(`schools-${new Date().toISOString().slice(0, 10)}.csv`) });
+    }
     if (m === "GET" && p === "/api/platform/audit") return send(req, res, 200, await platform.platformAudit());
     if (m === "POST" && p === "/api/platform/schools") return send(req, res, 200, await platform.createSchool(admin, await readJson(req), ip));
     if (m === "POST" && (r = /^\/api\/platform\/schools\/([0-9a-f-]{36})\/active$/.exec(p))) {

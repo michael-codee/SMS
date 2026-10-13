@@ -7,6 +7,7 @@ const db = require("./db");
 const auth = require("./auth");
 const settingsLib = require("./settings");
 const platformSettings = require("./platformSettings");
+const schoolTypes = require("./schoolTypes");
 const { bad, notFound, str, newId, imageDataUrl, sha256 } = require("./util");
 const crypto = require("node:crypto");
 
@@ -15,6 +16,8 @@ const CODE_RE = /^[A-Za-z0-9-]{2,20}$/;
 async function listSchools() {
   const r = await db.query(
     `SELECT s.id, s.code, s.name, s.active, s.created_at AS "createdAt",
+            COALESCE(s.settings->>'location', '') AS location,
+            COALESCE(NULLIF(s.settings->>'schoolType', ''), 'secondary') AS "schoolType",
             (SELECT count(*)::int FROM pupils p WHERE p.school_id = s.id AND p.active) AS pupils,
             (SELECT count(*)::int FROM users u WHERE u.school_id = s.id) AS accounts,
             (SELECT max(at) FROM audit_log a WHERE a.school_id = s.id) AS "lastActivity"
@@ -50,6 +53,9 @@ async function createSchool(admin, body, ip) {
   const proprietorName = str(body.proprietorName, "Proprietor's name", { max: 120, required: true });
   const proprietorUsername = str(body.proprietorUsername, "Proprietor's username", { max: 40, required: true });
   if (!/^[A-Za-z0-9._-]{3,40}$/.test(proprietorUsername)) throw bad("Usernames use 3 to 40 letters, digits, dots, dashes or underscores.");
+  const schoolType = body.schoolType === undefined ? "secondary" : String(body.schoolType);
+  if (!schoolTypes.TYPES[schoolType]) throw bad("Choose a school type.");
+  const type = schoolTypes.TYPES[schoolType];
   const logo = imageDataUrl(body.logo, "Logo");
   const withDemo = body.demo === true;
 
@@ -58,26 +64,28 @@ async function createSchool(admin, body, ip) {
   const hash = await auth.hashPassword(temp);
   const ps = platformSettings.get();
   const settings = settingsLib.sanitize({
+    ...type.settings,
     motto: body.motto || "", location: body.location || "", admissionPrefix: body.code ? code.toUpperCase() : initialsOf(name),
     sessionTimeoutMinutes: ps.newSchoolSessionTimeoutMinutes, lockoutThreshold: ps.newSchoolLockoutThreshold,
   }, {});
+  settings.schoolType = schoolType;
 
   await db.tx(async (c) => {
     const exists = await c.query("SELECT 1 FROM schools WHERE lower(code) = lower($1)", [code]);
     if (exists.rowCount) throw bad(`A school with code ${code} already exists.`);
     await c.query("INSERT INTO schools (id, code, name, settings, logo) VALUES ($1,$2,$3,$4,$5)", [id, code, name, settings, logo]);
-    for (const [i, n] of settingsLib.DEFAULT_CLASSES.entries()) {
+    for (const [i, n] of type.classes.entries()) {
       await c.query("INSERT INTO classes (id, school_id, name, sort) VALUES ($1,$2,$3,$4)", [newId("C"), id, n, i]);
     }
-    for (const [i, n] of settingsLib.DEFAULT_SUBJECTS.entries()) {
+    for (const [i, n] of type.subjects.entries()) {
       await c.query("INSERT INTO subjects (id, school_id, name, sort) VALUES ($1,$2,$3,$4)", [newId("S"), id, n, i]);
     }
     await c.query(
       `INSERT INTO users (id, school_id, username, password_hash, role, name, title, must_change_password) VALUES ($1,$2,$3,$4,'proprietor',$5,'Proprietor',true)`,
       [newId("U"), id, proprietorUsername, hash, proprietorName]);
     if (withDemo) await seedDemo(c, id, settings);
-    await auth.audit(id, `${admin.name} (Platform admin)`, "Created school", `${name} (${code})${withDemo ? " with sample data" : ""}`, ip, c);
-    await auth.audit(null, `${admin.name} (Platform admin)`, "Created school", `${name} (${code})`, ip, c);
+    await auth.audit(id, `${admin.name} (Platform admin)`, "Created school", `${name} (${code}), ${type.label}${withDemo ? ", with sample data" : ""}`, ip, c);
+    await auth.audit(null, `${admin.name} (Platform admin)`, "Created school", `${name} (${code}), ${type.label}`, ip, c);
   });
   return { id, code, proprietorUsername, tempPassword: temp };
 }
@@ -104,23 +112,34 @@ async function resetProprietor(admin, schoolId, ip) {
 }
 
 /* Sample people and marks, for training and demonstrations only. */
-async function seedDemo(c, sid, settings) {
-  const classes = (await c.query("SELECT id, name FROM classes WHERE school_id = $1 ORDER BY sort", [sid])).rows;
-  const cls = (n) => classes.find((x) => x.name === n).id;
-  const T = [
+const DEMO = {};
+DEMO.secondary = { T: [
     ["Mrs. Aminata Sesay", "JSS1", ["Religious Moral Education (RME)", "Physical Health Education (PHE)", "Business Studies"]],
     ["Mr. Samuel Koroma", "JSS2", ["History", "Economics"]],
     ["Mrs. Fatmata Bangura", "JSS3", ["Biology", "Chemistry"]],
     ["Mr. Ibrahim Kamara", "SSS1", ["Physics", "Economics"]],
     ["Mrs. Adama Conteh", "SSS2", ["Business Management", "Cost Accounting"]],
     ["Mr. Foday Sesay", "SSS3", ["Economics", "History"]],
-  ];
-  const P = [
+  ], P: [
     ["Fatmata Kamara", "JSS1", "Mrs. Isatu Kamara", 3500, 3500], ["Ibrahim Bangura", "JSS1", "Mr. Alie Bangura", 3500, 1500],
     ["Mariama Conteh", "JSS2", "Mrs. Adama Conteh", 3500, 3500], ["Abdul Sesay", "JSS2", "Mrs. Isatu Kamara", 3200, 3200],
     ["Isata Turay", "JSS3", "Mr. Foday Turay", 3200, 800], ["Mohamed Kargbo", "SSS1", "Mrs. Yeanoh Kargbo", 3800, 3800],
     ["Aminata Koroma", "SSS2", "Mr. Sorie Koroma", 3800, 1900], ["Foday Kamara", "SSS3", "Mrs. Isatu Kamara", 4200, 2000],
-  ];
+  ] };
+DEMO.preprimary = { T: [
+    ["Mrs. Aminata Sesay", "Nursery 1", ["Language & Literacy", "Numeracy", "Creative Arts"]],
+    ["Mrs. Fatmata Bangura", "Nursery 2", ["Language & Literacy", "Numeracy", "Environmental Studies"]],
+    ["Mrs. Adama Conteh", "Nursery 3", ["Language & Literacy", "Numeracy", "Music & Rhymes"]],
+  ], P: [
+    ["Hawa Kamara", "Nursery 1", "Mrs. Isatu Kamara", 1500, 1500], ["Sahr Bangura", "Nursery 1", "Mr. Alie Bangura", 1500, 700],
+    ["Kadiatu Conteh", "Nursery 2", "Mrs. Adama Conteh", 1700, 1700], ["Musa Sesay", "Nursery 2", "Mrs. Isatu Kamara", 1700, 900],
+    ["Zainab Turay", "Nursery 3", "Mr. Foday Turay", 1900, 1900], ["Alhaji Kargbo", "Nursery 3", "Mrs. Yeanoh Kargbo", 1900, 0],
+  ] };
+
+async function seedDemo(c, sid, settings) {
+  const classes = (await c.query("SELECT id, name FROM classes WHERE school_id = $1 ORDER BY sort", [sid])).rows;
+  const cls = (n) => classes.find((x) => x.name === n).id;
+  const { T, P } = DEMO[schoolTypes.typeOf(settings)];
   const tIds = {};
   for (const [name, c1, subjects] of T) {
     const id = newId("T");
@@ -141,7 +160,7 @@ async function seedDemo(c, sid, settings) {
     for (const subject of tIds[c1].subjects) {
       const rnd = (max) => Math.round(max * (0.55 + Math.random() * 0.4));
       await c.query("INSERT INTO grades (school_id, pupil_id, subject, term, year, scores) VALUES ($1,$2,$3,$4,$5,$6)",
-        [sid, id, subject, settings.currentTerm, yr, { classwork: rnd(20), test1: rnd(10), test2: rnd(10), exam: rnd(60) }]);
+        [sid, id, subject, settings.currentTerm, yr, Object.fromEntries(settings.assessment.map((a) => [a.key, rnd(a.max)]))]);
     }
   }
   await c.query("UPDATE schools SET next_admission_seq = $2, next_receipt_seq = $2 WHERE id = $1", [sid, seq]);
@@ -240,7 +259,42 @@ async function platformAudit() {
   return (await db.query("SELECT id::text, at AS timestamp, actor, action, details FROM audit_log WHERE school_id IS NULL ORDER BY at DESC LIMIT 1000")).rows;
 }
 
+
+/* Every school's details as a CSV file, for keeping records or opening in Excel. */
+const CSV_COLUMNS = [
+  ["School code", "code"], ["School name", "name"], ["School type", "typeLabel"], ["Location", "location"], ["Motto", "motto"],
+  ["Status", "status"], ["Pupils", "pupils"], ["Staff", "staff"], ["Classes", "classes"], ["User accounts", "accounts"],
+  ["Proprietor", "proprietorName"], ["Proprietor username", "proprietorUsername"], ["Currency", "currency"],
+  ["Current term", "currentTerm"], ["Academic year", "currentYear"], ["Created", "createdAt"], ["Last activity", "lastActivity"],
+];
+function csvCell(v) {
+  let t = v === null || v === undefined ? "" : v instanceof Date ? v.toISOString().replace("T", " ").slice(0, 16) : String(v);
+  if (/^[=+\-@\t\r]/.test(t)) t = "'" + t; // stop spreadsheets treating a value as a formula
+  return /[",\r\n]/.test(t) ? `"${t.replace(/"/g, '""')}"` : t;
+}
+async function schoolsCsv(admin, ip) {
+  const r = await db.query(
+    `SELECT s.code, s.name, s.active, s.settings, s.created_at AS "createdAt",
+            (SELECT count(*)::int FROM pupils p WHERE p.school_id = s.id AND p.active) AS pupils,
+            (SELECT count(*)::int FROM teachers t WHERE t.school_id = s.id) AS staff,
+            (SELECT count(*)::int FROM classes k WHERE k.school_id = s.id) AS classes,
+            (SELECT count(*)::int FROM users u WHERE u.school_id = s.id) AS accounts,
+            (SELECT u.name FROM users u WHERE u.school_id = s.id AND u.role = 'proprietor' ORDER BY u.created_at LIMIT 1) AS "proprietorName",
+            (SELECT u.username FROM users u WHERE u.school_id = s.id AND u.role = 'proprietor' ORDER BY u.created_at LIMIT 1) AS "proprietorUsername",
+            (SELECT max(at) FROM audit_log a WHERE a.school_id = s.id) AS "lastActivity"
+       FROM schools s ORDER BY s.name`);
+  const lines = [CSV_COLUMNS.map(([h]) => h).join(",")];
+  for (const row of r.rows) {
+    const st = settingsLib.full(row.settings);
+    const v = { ...row, typeLabel: schoolTypes.TYPES[schoolTypes.typeOf(st)].label, location: st.location, motto: st.motto,
+      status: row.active ? "Active" : "Switched off", currency: st.currency, currentTerm: st.currentTerm, currentYear: st.currentYear };
+    lines.push(CSV_COLUMNS.map(([, k]) => csvCell(v[k])).join(","));
+  }
+  await auth.audit(null, adminLabel(admin), "Downloaded school list", `${r.rowCount} schools`, ip);
+  return "\uFEFF" + lines.join("\r\n") + "\r\n";
+}
+
 module.exports = {
-  listSchools, createSchool, setActive, resetProprietor, changeOwnPassword, platformAudit,
+  listSchools, schoolsCsv, createSchool, setActive, resetProprietor, changeOwnPassword, platformAudit,
   listAdmins, createAdmin, resetAdmin, removeAdmin, mySessions, systemInfo, updateSettings,
 };

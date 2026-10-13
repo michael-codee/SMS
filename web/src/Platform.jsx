@@ -5,6 +5,12 @@ import { APP_NAME, APP_LOGO } from "./brand.js";
 import { Icon } from "./icons.jsx";
 
 
+const SCHOOL_TYPES = { secondary: "Secondary School", preprimary: "Pre-Primary School" };
+const TYPE_NOTES = {
+  secondary: "The school starts with classes JSS1 to SSS3, a standard secondary subject list, three terms and A to F grades. Its staff roles include a Principal and an Exam Officer.",
+  preprimary: "The school starts with classes Nursery 1 to Nursery 3, early-years subjects (such as Language & Literacy, Numeracy and Creative Arts), three terms and A to E grades with no class positions. Its staff roles include a Head Teacher and an Assessment Officer.",
+};
+
 /* Platform administration (at /platform): a menu for managing schools, the activity log, system and security settings, and administrator accounts. */
 
 function Login({ onDone }) {
@@ -62,7 +68,7 @@ function Credentials({ title, info, onClose }) {
 }
 
 function CreateSchool({ onClose, onCreated }) {
-  const [f, setF] = useState({ name: "", motto: "", location: "", proprietorName: "", proprietorUsername: "", demo: false, logo: "" });
+  const [f, setF] = useState({ schoolType: "", name: "", motto: "", location: "", proprietorName: "", proprietorUsername: "", demo: false, logo: "" });
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
   const set = (k) => (e) => setF({ ...f, [k]: e.target.type === "checkbox" ? e.target.checked : e.target.value });
@@ -83,9 +89,15 @@ function CreateSchool({ onClose, onCreated }) {
   return (
     <Modal title="Add a school" onClose={onClose} wide>
       <div className="form-grid">
+        <label className="form-span">School type
+          <select value={f.schoolType} onChange={set("schoolType")}>
+            <option value="">Choose the type of school…</option>
+            {Object.entries(SCHOOL_TYPES).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
+          </select>
+        </label>
         <label className="form-span">School name<input value={f.name} onChange={set("name")} placeholder="e.g. The International School Ltd" maxLength={120} /></label>
         <label>Motto (optional)<input value={f.motto} onChange={set("motto")} maxLength={120} /></label>
-        <label>Location line (optional)<input value={f.location} onChange={set("location")} placeholder="e.g. Freetown" maxLength={120} /></label>
+        <label>City / location (optional)<input value={f.location} onChange={set("location")} placeholder="e.g. Freetown" maxLength={120} /></label>
         <label>Proprietor's full name<input value={f.proprietorName} onChange={set("proprietorName")} maxLength={120} /></label>
         <label>Proprietor's username<input value={f.proprietorUsername} onChange={set("proprietorUsername")} placeholder="e.g. fkamanda" maxLength={40} autoCapitalize="none" /></label>
         <label className="form-span">Crest or logo (optional, the Proprietor can add it later)
@@ -93,7 +105,7 @@ function CreateSchool({ onClose, onCreated }) {
         </label>
         <label className="form-span check-chip"><input type="checkbox" checked={f.demo} onChange={set("demo")} /> Fill with sample pupils, staff and marks (for training only, never for a real school)</label>
       </div>
-      <p className="muted" style={{ fontSize: 14 }}>The system gives the school its own 8-digit school code, shown on the next screen. Its pupils' ID numbers start with the school's initials (e.g. TISL/2026/001). The school starts with classes JSS1 to SSS3, a standard subject list, three terms and the usual A to F grades. The Proprietor can change all of these in School Setup.</p>
+      <p className="muted" style={{ fontSize: 14 }}>The system gives the school its own 8-digit school code, shown on the next screen. Its pupils' ID numbers start with the school's initials (e.g. TISL/2026/001). {f.schoolType ? TYPE_NOTES[f.schoolType] + " " : ""}The Proprietor can change the classes, subjects, terms and grades in School Setup.</p>
       {error && <div className="form-error" style={{ marginTop: 12 }}>{error}</div>}
       <div className="modal-actions">
         <button className="btn-ghost" onClick={onClose}>Cancel</button>
@@ -188,17 +200,26 @@ function SchoolsPage({ setModal, setError, version }) {
         <StatCard label="Pupils (all schools)" value={list.reduce((s, x) => s + x.pupils, 0)} />
         <StatCard label="Accounts (all schools)" value={list.reduce((s, x) => s + x.accounts, 0)} />
       </div>
-      <Panel title="Schools" action={<button className="btn-primary btn-small" onClick={() => setModal({ type: "create" })}>+ Add a school</button>}>
+      <Panel title="Schools" action={
+        <div className="row-actions" style={{ margin: 0 }}>
+          <a className="btn-ghost btn-small btn-icon" href="/api/platform/schools.csv" download><Icon name="download" size={18} />Download data (CSV)</a>
+          <button className="btn-primary btn-small" onClick={() => setModal({ type: "create" })}>+ Add a school</button>
+        </div>
+      }>
         <div className="table-scroll">
           <table className="data-table">
-            <thead><tr><th>Code</th><th>Name</th><th>Pupils</th><th>Accounts</th><th>Last activity</th><th>Status</th><th></th></tr></thead>
+            <thead><tr><th>Code</th><th>Name</th><th>Location</th><th>Pupils</th><th>Accounts</th><th>Last activity</th><th>Status</th><th></th></tr></thead>
             <tbody>
-              {schools && list.length === 0 && <tr><td colSpan={7} className="rc-empty">No schools yet. Add the first one.</td></tr>}
-              {!schools && <tr><td colSpan={7} className="rc-empty">Loading…</td></tr>}
+              {schools && list.length === 0 && <tr><td colSpan={8} className="rc-empty">No schools yet. Add the first one.</td></tr>}
+              {!schools && <tr><td colSpan={8} className="rc-empty">Loading…</td></tr>}
               {list.map((s) => (
                 <tr key={s.id}>
                   <td className="mono">{s.code}</td>
-                  <td><a className="text-link" href={`/?school=${encodeURIComponent(s.code)}`} target="_blank" rel="noreferrer">{s.name}</a></td>
+                  <td>
+                    <a className="text-link" href={`/?school=${encodeURIComponent(s.code)}`} target="_blank" rel="noreferrer">{s.name}</a>
+                    <div className="muted" style={{ fontSize: 13.5 }}>{SCHOOL_TYPES[s.schoolType] || SCHOOL_TYPES.secondary}</div>
+                  </td>
+                  <td>{s.location || <span className="muted">—</span>}</td>
                   <td>{s.pupils}</td>
                   <td>{s.accounts}</td>
                   <td className="muted">{s.lastActivity ? formatTimestamp(s.lastActivity) : "—"}</td>

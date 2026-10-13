@@ -9,6 +9,7 @@
 const { bad, forbidden, notFound, newId, str, num, arr, imageDataUrl, dateOnly, today } = require("./util");
 const settingsLib = require("./settings");
 const auth = require("./auth");
+const schoolTypes = require("./schoolTypes");
 const projection = require("./projection");
 const { nextAdmissionNo, suggestAdmissionNo } = require("./admission");
 const backup = require("./backup");
@@ -126,9 +127,10 @@ const actions = {
       const hasTeacher = b.teacherComment !== undefined;
       const hasPrincipal = b.principalComment !== undefined;
       if (hasTeacher) await assertClassAccess(c, p, pupil.class_id);
-      if (hasPrincipal && p.user.role === "teacher") throw forbidden("Only the Principal or Proprietor can write the Principal's comment.");
+      const head = schoolTypes.roleLabel("principal", s, auth.ROLE_LABELS);
+      if (hasPrincipal && p.user.role === "teacher") throw forbidden(`Only the ${head} or Proprietor can write the ${head}'s comment.`);
       const tc = hasTeacher ? str(b.teacherComment, "Class teacher's comment", { max: 600 }) : null;
-      const pc = hasPrincipal ? str(b.principalComment, "Principal's comment", { max: 600 }) : null;
+      const pc = hasPrincipal ? str(b.principalComment, `${head}'s comment`, { max: 600 }) : null;
       await c.query(
         `INSERT INTO report_comments (school_id, pupil_id, term, year, teacher_comment, principal_comment) VALUES ($1,$2,$3,$4,COALESCE($5,''),COALESCE($6,''))
          ON CONFLICT (pupil_id, term, year) DO UPDATE SET
@@ -365,7 +367,7 @@ const actions = {
       else password = auth.generateTempPassword();
 
       const id = newId("U");
-      let teacherId = null, pupilId = null, title = auth.ROLE_LABELS[role];
+      let teacherId = null, pupilId = null, title = schoolTypes.roleLabel(role, school.settings, auth.ROLE_LABELS);
       if (role === "teacher") {
         if (b.teacherId) {
           const t = await getTeacher(c, p.schoolId, b.teacherId);
@@ -415,7 +417,7 @@ const actions = {
       for (const cid of childIds) {
         await c.query("INSERT INTO parent_children (user_id, pupil_id, school_id) VALUES ($1,$2,$3)", [id, cid, p.schoolId]);
       }
-      await audit(c, p, "Created account", `${username} (${auth.ROLE_LABELS[role]}): ${name}`, ctx);
+      await audit(c, p, "Created account", `${username} (${schoolTypes.roleLabel(role, school.settings, auth.ROLE_LABELS)}): ${name}`, ctx);
       return { id, username, tempPassword: password };
     },
   },
