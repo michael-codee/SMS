@@ -1,14 +1,37 @@
 "use strict";
 /*
- * School types. The platform administrator picks one when adding a school; it decides the
+ * School types. The platform administrator picks one when adding a school (pre-primary, junior
+ * secondary or senior secondary); it decides the
  * starting classes, subjects, marking scheme and what some roles are called.
  * Everything except the role names can still be changed later in School Setup.
  */
 const settingsLib = require("./settings");
 
 const TYPES = {
+  jss: {
+    label: "Junior Secondary School",
+    roles: { principal: "Principal", examofficer: "Exam Officer" },
+    classes: ["JSS1", "JSS2", "JSS3"],
+    subjects: [
+      "English Language", "Mathematics", "Integrated Science", "Social Studies", "Agricultural Science", "Business Studies",
+      "Home Economics", "Introductory Technology", "French", "Religious Moral Education (RME)", "Physical Health Education (PHE)",
+    ],
+    settings: {},
+  },
+  sss: {
+    label: "Senior Secondary School",
+    roles: { principal: "Principal", examofficer: "Exam Officer" },
+    classes: ["SSS1", "SSS2", "SSS3"],
+    subjects: [
+      "English Language", "Mathematics", "Biology", "Chemistry", "Physics", "Economics", "Government", "Geography",
+      "History", "Literature in English", "Business Management", "Financial Accounting", "Cost Accounting",
+      "Religious Moral Education (RME)", "Physical Health Education (PHE)",
+    ],
+    settings: {},
+  },
+  // schools added before the junior/senior split run JSS1 to SSS3 together
   secondary: {
-    label: "Secondary School",
+    label: "Secondary School (JSS and SSS)",
     roles: { principal: "Principal", examofficer: "Exam Officer" },
     classes: settingsLib.DEFAULT_CLASSES,
     subjects: settingsLib.DEFAULT_SUBJECTS,

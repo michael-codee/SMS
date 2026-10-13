@@ -1,14 +1,14 @@
 import React, { useState, useEffect, useCallback } from "react";
 import { api, readImageFile } from "./api.js";
 import { Panel, Modal, Pill, StatCard, formatTimestamp, CSS } from "./App.jsx";
-import { APP_NAME, APP_LOGO } from "./brand.js";
+import { APP_NAME, APP_LOGO, NEW_SCHOOL_TYPES, schoolTypeLabel } from "./brand.js";
 import { Icon } from "./icons.jsx";
 
 
-const SCHOOL_TYPES = { secondary: "Secondary School", preprimary: "Pre-Primary School" };
 const TYPE_NOTES = {
-  secondary: "The school starts with classes JSS1 to SSS3, a standard secondary subject list, three terms and A to F grades. Its staff roles include a Principal and an Exam Officer.",
   preprimary: "The school starts with classes Nursery 1 to Nursery 3, early-years subjects (such as Language & Literacy, Numeracy and Creative Arts), three terms and A to E grades with no class positions. Its staff roles include a Head Teacher and an Assessment Officer.",
+  jss: "The school starts with classes JSS1 to JSS3, junior secondary subjects (such as Integrated Science, Social Studies and Agricultural Science), three terms and A to F grades. Its staff roles include a Principal and an Exam Officer.",
+  sss: "The school starts with classes SSS1 to SSS3, senior secondary subjects (such as Biology, Economics and Government), three terms and A to F grades. Its staff roles include a Principal and an Exam Officer.",
 };
 
 /* Platform administration (at /platform): a menu for managing schools, the activity log, system and security settings, and administrator accounts. */
@@ -92,7 +92,7 @@ function CreateSchool({ onClose, onCreated }) {
         <label className="form-span">School type
           <select value={f.schoolType} onChange={set("schoolType")}>
             <option value="">Choose the type of school…</option>
-            {Object.entries(SCHOOL_TYPES).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
+            {NEW_SCHOOL_TYPES.map((k) => <option key={k} value={k}>{schoolTypeLabel(k)}</option>)}
           </select>
         </label>
         <label className="form-span">School name<input value={f.name} onChange={set("name")} placeholder="e.g. The International School Ltd" maxLength={120} /></label>
@@ -215,9 +215,9 @@ function SchoolsPage({ setModal, setError, version }) {
               {list.map((s) => (
                 <tr key={s.id}>
                   <td className="mono">{s.code}</td>
-                  <td>
+                  <td style={{ minWidth: 210 }}>
                     <a className="text-link" href={`/?school=${encodeURIComponent(s.code)}`} target="_blank" rel="noreferrer">{s.name}</a>
-                    <div className="muted" style={{ fontSize: 13.5 }}>{SCHOOL_TYPES[s.schoolType] || SCHOOL_TYPES.secondary}</div>
+                    <div className="muted" style={{ fontSize: 13.5 }}>{schoolTypeLabel(s.schoolType)}</div>
                   </td>
                   <td>{s.location || <span className="muted">—</span>}</td>
                   <td>{s.pupils}</td>

@@ -1,5 +1,5 @@
 "use strict";
-/* School types (secondary or pre-primary), the school location in the admin list, and the schools CSV download. */
+/* School types (pre-primary, junior secondary, senior secondary), the school location in the admin list, and the schools CSV download. */
 const test = require("node:test");
 const assert = require("node:assert/strict");
 const { setup, Browser } = require("./helpers");
@@ -34,17 +34,32 @@ test("a pre-primary school starts with nursery classes, early-years subjects and
   assert.equal(r.status, 200, r.text);
 });
 
-test("a secondary school keeps the usual classes and the Principal; a school with no type chosen is refused", async () => {
-  const s = await createSchool({ name: "Hill Secondary", location: "Freetown", schoolType: "secondary" });
-  const db = await s.browser.data();
-  assert.equal(db.settings.schoolType, "secondary");
-  assert.equal(db.classes[0].name, "JSS1");
-  const p = await s.browser.ok("createAccount", { role: "principal", name: "Mr. Principal", username: "princ1" });
-  assert.equal((await (await env.signIn(s.code, "princ1", p.tempPassword)).data()).me.title, "Principal");
+test("junior and senior secondary schools are separate schools with their own classes and subjects; a type must be chosen", async () => {
+  const j = await createSchool({ name: "Hill Junior Secondary", location: "Freetown", schoolType: "jss", demo: true });
+  const jdb = await j.browser.data();
+  assert.equal(jdb.settings.schoolType, "jss");
+  assert.deepEqual(jdb.classes.map((c) => c.name), ["JSS1", "JSS2", "JSS3"]);
+  assert.ok(jdb.subjects.includes("Integrated Science") && !jdb.subjects.includes("Physics"));
+  assert.ok(jdb.pupils.length > 0 && Object.keys(jdb.grades).length > 0, "sample data fits the junior classes");
+  const p = await j.browser.ok("createAccount", { role: "principal", name: "Mr. Principal", username: "princ1" });
+  assert.equal((await (await env.signIn(j.code, "princ1", p.tempPassword)).data()).me.title, "Principal");
+
+  const s = await createSchool({ name: "Hill Senior Secondary", location: "Kenema", schoolType: "sss", demo: true });
+  const sdb = await s.browser.data();
+  assert.deepEqual(sdb.classes.map((c) => c.name), ["SSS1", "SSS2", "SSS3"]);
+  assert.ok(sdb.subjects.includes("Government") && !sdb.subjects.includes("Integrated Science"));
+  assert.ok(sdb.pupils.length > 0);
 
   const none = await env.admin.post("/api/platform/schools", { name: "No Type", proprietorName: "O", proprietorUsername: "owner", schoolType: "" });
   assert.equal(none.status, 400);
   assert.match(none.body.error, /school type/);
+});
+
+test("schools added before the split keep JSS1 to SSS3 together", async () => {
+  const old = await env.school("OLDSEC");
+  const db = await old.browser.data();
+  assert.equal(db.settings.schoolType, "secondary");
+  assert.deepEqual(db.classes.map((c) => c.name), ["JSS1", "JSS2", "JSS3", "SSS1", "SSS2", "SSS3"]);
 });
 
 test("the admin school list shows each school's type and location", async () => {
@@ -52,11 +67,12 @@ test("the admin school list shows each school's type and location", async () => 
   const nursery = list.find((x) => x.name === "Little Stars Nursery");
   assert.equal(nursery.location, "Bo");
   assert.equal(nursery.schoolType, "preprimary");
-  assert.equal(list.find((x) => x.name === "Hill Secondary").schoolType, "secondary");
+  assert.equal(list.find((x) => x.name === "Hill Junior Secondary").schoolType, "jss");
+  assert.equal(list.find((x) => x.name === "Hill Senior Secondary").schoolType, "sss");
 });
 
 test("the schools CSV has every school's details, is safe to open in a spreadsheet, and is for administrators only", async () => {
-  await createSchool({ name: "Formula School", motto: "=1+2", location: "Makeni, North", schoolType: "secondary" });
+  await createSchool({ name: "Formula School", motto: "=1+2", location: "Makeni, North", schoolType: "sss" });
   const r = await env.admin.get("/api/platform/schools.csv");
   assert.equal(r.status, 200);
   assert.match(r.headers.get("content-type"), /text\/csv/);
@@ -67,6 +83,7 @@ test("the schools CSV has every school's details, is safe to open in a spreadshe
   assert.ok(row.includes("'=1+2"), "a value starting with = is not run as a formula");
   assert.ok(row.includes('"Makeni, North"'), "commas are quoted");
   assert.ok(lines.some((l) => l.includes("Little Stars Nursery") && l.includes("Pre-Primary School")));
+  assert.ok(lines.some((l) => l.includes("Hill Junior Secondary") && l.includes("Junior Secondary School")));
   const audit = (await env.admin.get("/api/platform/audit")).body;
   assert.ok(audit.some((a) => a.action === "Downloaded school list"));
 
