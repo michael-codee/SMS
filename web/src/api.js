@@ -44,6 +44,16 @@ export const api = {
   platformSetActive: (id, active) => request("POST", `/api/platform/schools/${id}/active`, { active }),
   platformResetProprietor: (id) => request("POST", `/api/platform/schools/${id}/reset-proprietor`, {}).then((r) => r.data),
   platformChangePassword: (current, next) => request("POST", "/api/platform/password", { current, next }),
+  platformSystem: () => request("GET", "/api/platform/system").then((r) => r.data),
+  platformSettings: () => request("GET", "/api/platform/settings").then((r) => r.data),
+  platformSaveSettings: (patch) => request("POST", "/api/platform/settings", { patch }).then((r) => r.data),
+  platformAdmins: () => request("GET", "/api/platform/admins").then((r) => r.data),
+  platformAddAdmin: (body) => request("POST", "/api/platform/admins", body).then((r) => r.data),
+  platformResetAdmin: (id) => request("POST", `/api/platform/admins/${id}/reset`, {}).then((r) => r.data),
+  platformRemoveAdmin: (id) => request("POST", `/api/platform/admins/${id}/remove`, {}),
+  platformSessions: () => request("GET", "/api/platform/sessions").then((r) => r.data),
+  platformSignOutOthers: () => request("POST", "/api/platform/sessions/sign-out-others", {}),
+  publicNotice: () => request("GET", "/api/public/notice").then((r) => r.data),
 };
 
 /* Read an image file the user picked, shrinking large photos so uploads stay small on slow connections. */

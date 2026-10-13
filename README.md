@@ -13,7 +13,12 @@ One web app that many schools use at the same time. Each school signs in with it
 
 ## Who can do what
 
-- **Platform administrator** (at `/platform`): adds schools, switches a school off or on, gives a locked-out Proprietor a new temporary password. Cannot see pupil records.
+- **Platform administrator** (at `/platform`): cannot see pupil records. Its menu has:
+  - **Manage schools**: add a school, switch it off or on, give a locked-out Proprietor a new temporary password.
+  - **Platform activity**: every administrator sign-in and change, searchable.
+  - **System settings**: a notice shown to every school (for example planned maintenance), the help contact on the sign-in page, and how the system is running.
+  - **Security settings**: when administrators are signed out and locked out, the shortest password allowed for every account, the sign-out and lockout rules new schools start with, and the devices you are signed in on.
+  - **Password & sign out**: change your password, add other platform administrators, reset their passwords or remove them, and sign out.
 - **Proprietor**: everything inside their school, including School Setup, accounts, backups and restore.
 - **Principal, Teacher, Bursar, Exam Officer, Parent, Pupil**: only what their job needs. A teacher sees their own class; a parent sees their own children; a bursar sees fees but not marks.
 
@@ -35,7 +40,7 @@ One web app that many schools use at the same time. Each school signs in with it
 | `PLATFORM_ADMIN_USERNAME` | First start | Creates the platform administrator. |
 | `PLATFORM_ADMIN_PASSWORD` | First start | That administrator's password (at least 8 characters). |
 | `PLATFORM_ADMIN_NAME` | No | Display name for the administrator. |
-| `PLATFORM_ADMIN_RESET` | No | Set to `1` with the two above to reset a forgotten administrator password, restart, then remove it. |
+| `PLATFORM_ADMIN_RESET` | No | Set to `1` with the two above to reset a forgotten administrator password, restart, then remove it. Another platform administrator can also do this under **Password & sign out**. |
 | `PORT` | No | Defaults to 3000. Railway sets it for you. |
 | `TRUST_PROXY` | No | `1` when behind a proxy that sets `X-Forwarded-*`. Automatic on Railway. |
 | `COOKIE_SECURE` | No | `1` to always mark the sign-in cookie as HTTPS-only. |

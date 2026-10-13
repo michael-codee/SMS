@@ -10,6 +10,7 @@ const { promisify } = require("node:util");
 const db = require("./db");
 const { HttpError, sha256, newId } = require("./util");
 const settingsLib = require("./settings");
+const platformSettings = require("./platformSettings");
 
 const scrypt = promisify(crypto.scrypt);
 const SCRYPT = { N: 16384, r: 8, p: 1, keylen: 64 };
@@ -42,7 +43,8 @@ const COMMON = new Set(["password", "password1", "password123", "12345678", "123
 
 function checkNewPassword(pw, username) {
   if (typeof pw !== "string") throw new HttpError(400, "Enter a new password.");
-  if (pw.length < 8) throw new HttpError(400, "The new password must be at least 8 characters long.");
+  const min = platformSettings.get().minPasswordLength;
+  if (pw.length < min) throw new HttpError(400, `The new password must be at least ${min} characters long.`);
   if (pw.length > 200) throw new HttpError(400, "The new password is too long.");
   if (COMMON.has(pw.toLowerCase())) throw new HttpError(400, "That password is too easy to guess. Choose another.");
   if (username && pw.toLowerCase().includes(String(username).toLowerCase())) throw new HttpError(400, "The password must not contain the username.");
@@ -111,7 +113,7 @@ async function resolveSession(token, { active }) {
   const s = r.rows[0];
   if (!s) return null;
   const now = Date.now();
-  const idleMin = s.kind === "school" ? settingsLib.full(s.school_settings).sessionTimeoutMinutes : 30;
+  const idleMin = s.kind === "school" ? settingsLib.full(s.school_settings).sessionTimeoutMinutes : platformSettings.get().adminIdleMinutes;
   const idleExpired = now - new Date(s.last_seen_at).getTime() > idleMin * 60 * 1000;
   if (new Date(s.expires_at).getTime() < now || idleExpired || (s.kind === "school" && !s.school_active)) {
     await db.query("DELETE FROM sessions WHERE token_hash = $1", [h]);
@@ -120,7 +122,7 @@ async function resolveSession(token, { active }) {
 
   let principal;
   if (s.kind === "platform") {
-    const u = (await db.query("SELECT id, username, name, locked FROM platform_admins WHERE id = $1", [s.user_id])).rows[0];
+    const u = (await db.query("SELECT id, username, name, locked, must_change_password FROM platform_admins WHERE id = $1", [s.user_id])).rows[0];
     if (!u || u.locked) return null;
     principal = { kind: "platform", user: u };
   } else {
@@ -206,15 +208,16 @@ async function platformLogin({ username, password, ip, userAgent }) {
     await dummyVerify(password);
     throw new HttpError(401, "Username or password is incorrect.");
   }
-  if (u.locked) throw new HttpError(423, "This administrator account is locked. Unlock it by setting PLATFORM_ADMIN_RESET=1 and restarting (see README).");
+  if (u.locked) throw new HttpError(423, "This administrator account is locked. Ask another platform administrator to reset its password, or use PLATFORM_ADMIN_RESET (see README).");
   if (!(await verifyPassword(password, u.password_hash))) {
     noteIpFailure(ip);
     const next = u.failed_attempts + 1;
-    await db.query("UPDATE platform_admins SET failed_attempts = $2, locked = $3 WHERE id = $1", [u.id, next, next >= 10]);
-    await audit(null, "System", "Failed platform sign-in", u.username, ip);
+    const lock = next >= platformSettings.get().adminLockoutThreshold;
+    await db.query("UPDATE platform_admins SET failed_attempts = $2, locked = $3 WHERE id = $1", [u.id, next, lock]);
+    await audit(null, "System", lock ? "Administrator locked" : "Failed platform sign-in", lock ? `${u.username}: ${next} failed sign-in attempts` : u.username, ip);
     throw new HttpError(401, "Username or password is incorrect.");
   }
-  await db.query("UPDATE platform_admins SET failed_attempts = 0 WHERE id = $1", [u.id]);
+  await db.query("UPDATE platform_admins SET failed_attempts = 0, last_login_at = now() WHERE id = $1", [u.id]);
   const session = await createSession({ kind: "platform", userId: u.id, ip, userAgent });
   await audit(null, `${u.name} (Platform admin)`, "Logged in", u.username, ip);
   return { session, user: u };

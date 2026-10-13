@@ -3,7 +3,7 @@
  * page) so the app opens quickly. It never stores pages or answers from the server's /api/, so no
  * pupil, staff or account information is ever kept on the device.
  */
-const SHELL = "sms-shell-v2";
+const SHELL = "sms-shell-v3";
 const PRECACHE = ["/offline.html", "/icon-192.png", "/favicon.png"];
 
 self.addEventListener("install", (e) => {
