@@ -62,7 +62,7 @@ function Credentials({ title, info, onClose }) {
 }
 
 function CreateSchool({ onClose, onCreated }) {
-  const [f, setF] = useState({ code: "", name: "", motto: "", location: "", proprietorName: "", proprietorUsername: "", demo: false, logo: "" });
+  const [f, setF] = useState({ name: "", motto: "", location: "", proprietorName: "", proprietorUsername: "", demo: false, logo: "" });
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
   const set = (k) => (e) => setF({ ...f, [k]: e.target.type === "checkbox" ? e.target.checked : e.target.value });
@@ -83,8 +83,7 @@ function CreateSchool({ onClose, onCreated }) {
   return (
     <Modal title="Add a school" onClose={onClose} wide>
       <div className="form-grid">
-        <label>School code (used to sign in)<input value={f.code} onChange={set("code")} placeholder="e.g. TISL" maxLength={20} /></label>
-        <label>School name<input value={f.name} onChange={set("name")} placeholder="e.g. The International School Ltd" maxLength={120} /></label>
+        <label className="form-span">School name<input value={f.name} onChange={set("name")} placeholder="e.g. The International School Ltd" maxLength={120} /></label>
         <label>Motto (optional)<input value={f.motto} onChange={set("motto")} maxLength={120} /></label>
         <label>Location line (optional)<input value={f.location} onChange={set("location")} placeholder="e.g. Freetown" maxLength={120} /></label>
         <label>Proprietor's full name<input value={f.proprietorName} onChange={set("proprietorName")} maxLength={120} /></label>
@@ -94,7 +93,7 @@ function CreateSchool({ onClose, onCreated }) {
         </label>
         <label className="form-span check-chip"><input type="checkbox" checked={f.demo} onChange={set("demo")} /> Fill with sample pupils, staff and marks (for training only, never for a real school)</label>
       </div>
-      <p className="muted" style={{ fontSize: 14 }}>The school starts with classes JSS1 to SSS3, a standard subject list, three terms and the usual A to F grades. The Proprietor can change all of these in School Setup.</p>
+      <p className="muted" style={{ fontSize: 14 }}>The system gives the school its own 8-digit school code, shown on the next screen. Its pupils' ID numbers start with the school's initials (e.g. TISL/2026/001). The school starts with classes JSS1 to SSS3, a standard subject list, three terms and the usual A to F grades. The Proprietor can change all of these in School Setup.</p>
       {error && <div className="form-error" style={{ marginTop: 12 }}>{error}</div>}
       <div className="modal-actions">
         <button className="btn-ghost" onClick={onClose}>Cancel</button>

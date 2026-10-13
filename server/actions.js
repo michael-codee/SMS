@@ -10,6 +10,7 @@ const { bad, forbidden, notFound, newId, str, num, arr, imageDataUrl, dateOnly, 
 const settingsLib = require("./settings");
 const auth = require("./auth");
 const projection = require("./projection");
+const { nextAdmissionNo, suggestAdmissionNo } = require("./admission");
 const backup = require("./backup");
 
 async function schoolRow(c, sid) {
@@ -52,11 +53,10 @@ async function assertClassAccess(c, p, classId) {
   if (t.class_id !== classId) throw forbidden("You can only do this for your own class.");
 }
 
-async function nextAdmissionNo(c, school) {
-  const r = await c.query("UPDATE schools SET next_admission_seq = next_admission_seq + 1 WHERE id = $1 RETURNING next_admission_seq - 1 AS seq", [school.id]);
-  const seq = r.rows[0].seq;
-  const prefix = school.settings.admissionPrefix || school.code;
-  return `${prefix}/${String(school.settings.currentYear).slice(0, 4)}/${String(seq).padStart(3, "0")}`;
+function admissionNoField(value) {
+  const no = str(value, "ID number", { max: 40, required: true });
+  if (!/^[A-Za-z0-9/._-]+$/.test(no)) throw bad("ID numbers may only use letters, digits and / . _ -");
+  return no;
 }
 
 function pupilFields(body) {
@@ -272,9 +272,11 @@ const actions = {
       const cls = await getClass(c, p.schoolId, b.classId, { optional: true });
       const photo = imageDataUrl(b.photo, "Photo");
       const id = newId("P");
-      const admissionNo = b.admissionNo ? str(b.admissionNo, "Admission number", { max: 40 }) : await nextAdmissionNo(c, school);
-      const dup = await c.query("SELECT 1 FROM pupils WHERE school_id = $1 AND admission_no = $2", [p.schoolId, admissionNo]);
-      if (dup.rowCount) throw bad(`Admission number ${admissionNo} is already used.`);
+      // keeping the suggested number uses it up, so the next pupil is offered the one after
+      const typed = b.admissionNo ? admissionNoField(b.admissionNo) : "";
+      const admissionNo = !typed || typed === (await suggestAdmissionNo(c, school)) ? await nextAdmissionNo(c, school) : typed;
+      const dup = await c.query("SELECT 1 FROM pupils WHERE school_id = $1 AND lower(admission_no) = lower($2)", [p.schoolId, admissionNo]);
+      if (dup.rowCount) throw bad(`ID number ${admissionNo} is already used by another pupil.`);
       await c.query(
         `INSERT INTO pupils (id, school_id, name, admission_no, class_id, parent_name, address, telephone, dob, place_of_birth, photo)
          VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11)`,
@@ -297,10 +299,16 @@ const actions = {
       const cls = await getClass(c, p.schoolId, b.classId, { optional: true });
       const photo = b.photo === undefined || (typeof b.photo === "string" && b.photo.startsWith("/api/")) ? pupil.photo : imageDataUrl(b.photo, "Photo");
       const active = b.active === undefined ? pupil.active : b.active === true;
+      const admissionNo = b.admissionNo === undefined ? pupil.admission_no : admissionNoField(b.admissionNo);
+      if (admissionNo !== pupil.admission_no) {
+        const dup = await c.query("SELECT 1 FROM pupils WHERE school_id = $1 AND lower(admission_no) = lower($2) AND id <> $3", [p.schoolId, admissionNo, pupil.id]);
+        if (dup.rowCount) throw bad(`ID number ${admissionNo} is already used by another pupil.`);
+      }
       await c.query(
-        `UPDATE pupils SET name=$3, class_id=$4, parent_name=$5, address=$6, telephone=$7, dob=$8, place_of_birth=$9, photo=$10, active=$11, updated_at=now()
+        `UPDATE pupils SET name=$3, class_id=$4, parent_name=$5, address=$6, telephone=$7, dob=$8, place_of_birth=$9, photo=$10, active=$11, admission_no=$12, updated_at=now()
           WHERE school_id = $1 AND id = $2`,
-        [p.schoolId, pupil.id, f.name, cls && cls.id, f.parentName, f.address, f.telephone, f.dob, f.placeOfBirth, photo, active]);
+        [p.schoolId, pupil.id, f.name, cls && cls.id, f.parentName, f.address, f.telephone, f.dob, f.placeOfBirth, photo, active, admissionNo]);
+      if (admissionNo !== pupil.admission_no) await audit(c, p, "Changed ID number", `${f.name}: ${pupil.admission_no} to ${admissionNo}`, ctx);
       const what = active !== pupil.active ? (active ? "Re-admitted pupil" : "Withdrew pupil") : "Updated pupil";
       await audit(c, p, what, `${f.name} (${pupil.admission_no})${cls && cls.id !== pupil.class_id ? `: moved to ${cls.name}` : ""}`, ctx);
     },

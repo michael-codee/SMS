@@ -14,13 +14,13 @@ One web app that many schools use at the same time. Each school signs in with it
 ## Who can do what
 
 - **Platform administrator** (at `/platform`): cannot see pupil records. Its menu has:
-  - **Manage schools**: add a school, switch it off or on, give a locked-out Proprietor a new temporary password.
+  - **Manage schools**: add a school (the system gives it an 8-digit school code), switch it off or on, give a locked-out Proprietor a new temporary password.
   - **Platform activity**: every administrator sign-in and change, searchable.
   - **System settings**: a notice shown to every school (for example planned maintenance), the help contact on the sign-in page, and how the system is running.
   - **Security settings**: when administrators are signed out and locked out, the shortest password allowed for every account, the sign-out and lockout rules new schools start with, and the devices you are signed in on.
   - **Password & sign out**: change your password, add other platform administrators, reset their passwords or remove them, and sign out.
 - **Proprietor**: everything inside their school, including School Setup, accounts, backups and restore.
-- **Principal, Teacher, Bursar, Exam Officer, Parent, Pupil**: only what their job needs. A teacher sees their own class; a parent sees their own children; a bursar sees fees but not marks.
+- **Principal, Teacher, Bursar, Exam Officer, Parent, Pupil**: only what their job needs. A teacher sees their own class; a parent sees their own children; a bursar sees fees but not marks; the exam officer sees marks to print report cards, but no home details or fees. The Bursar and Principal can print a "Paid in full" receipt for any pupil whose term fees are fully paid.
 
 ## Security in short
 
