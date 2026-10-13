@@ -14,6 +14,7 @@
 const http = require("node:http");
 const db = require("./db");
 const auth = require("./auth");
+const platformSettings = require("./platformSettings");
 const backup = require("./backup");
 const { handler } = require("./app");
 const { status, explain } = require("./status");
@@ -41,6 +42,7 @@ async function prepare() {
     try {
       if (!db.connected()) db.connect(process.env.DATABASE_URL);
       await db.migrate();
+      await platformSettings.load();
       break;
     } catch (e) {
       status.problem = explain(e);

@@ -8,7 +8,7 @@ const { bad, str, num, arr } = require("./util");
 const DEFAULT_SETTINGS = Object.freeze({
   motto: "",
   location: "",
-  colors: { primary: "#1B3A2E", accent: "#B98A2C", banner: "#003399" },
+  colors: { primary: "#12355B", accent: "#E9A23B", banner: "#1E5BB8" },
   currency: "Le",
   terms: ["Term 1", "Term 2", "Term 3"],
   currentTerm: "Term 1",
@@ -73,7 +73,7 @@ function sanitize(patch, current) {
     out.colors = { ...cur.colors };
     for (const k of ["primary", "accent", "banner"]) {
       if (k in c) {
-        if (!COLOR_RE.test(c[k] || "")) throw bad(`Colour "${k}" must look like #1B3A2E.`);
+        if (!COLOR_RE.test(c[k] || "")) throw bad(`Colour "${k}" must look like #12355B.`);
         out.colors[k] = c[k];
       }
     }

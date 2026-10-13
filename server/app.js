@@ -12,6 +12,7 @@ const actions = require("./actions");
 const projection = require("./projection");
 const backup = require("./backup");
 const platform = require("./platform");
+const platformSettings = require("./platformSettings");
 const settingsLib = require("./settings");
 const { HttpError, parseDataUrl } = require("./util");
 const { status } = require("./status");
@@ -222,7 +223,7 @@ function setupPage(problem) {
   const esc = (t) => t.replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c]);
   return `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
 <meta http-equiv="refresh" content="15"><title>Setting up - Elite Smart School Systems</title></head>
-<body style="font-family:system-ui,sans-serif;max-width:560px;margin:60px auto;padding:0 16px;color:#1B3A2E;background:#FAF7F0">
+<body style="font-family:system-ui,sans-serif;max-width:560px;margin:60px auto;padding:0 16px;color:#12355B;background:#F4F7FB">
 <h1 style="font-size:22px">Elite Smart School Systems is not ready yet</h1>
 <p style="font-size:16px;line-height:1.5">${esc(problem)}</p>
 <p style="color:#666;font-size:14px">This page checks again every 15 seconds.</p></body></html>`;
@@ -270,6 +271,10 @@ async function route(req, res) {
       logoUrl: s.has_logo ? `/api/public/logo/${encodeURIComponent(s.code)}?v=${s.rev}` : "",
     }, { "Cache-Control": "no-cache" });
   }
+  if (m === "GET" && p === "/api/public/notice") {
+    const ps = platformSettings.get();
+    return send(req, res, 200, { notice: ps.notice, supportContact: ps.supportContact }, { "Cache-Control": "no-cache" });
+  }
   if (m === "GET" && (r = /^\/api\/public\/logo\/([^/]+)$/.exec(p))) {
     const s = (await db.query("SELECT logo FROM schools WHERE lower(code) = lower($1) AND active", [decodeURIComponent(r[1])])).rows[0];
     if (!s || !s.logo) return send(req, res, 404, { error: "No logo." });
@@ -287,6 +292,7 @@ async function route(req, res) {
     try {
       const who = await auth.resolveSession(token, { active: false });
       if (who && who.kind === "school") await auth.audit(who.schoolId, auth.actorLabel(who.user), "Logged out", `Username: ${who.user.username}`, ip);
+      if (who && who.kind === "platform") await auth.audit(null, `${who.user.name} (Platform admin)`, "Logged out", who.user.username, ip);
     } catch (e) { /* signing out always succeeds */ }
     await auth.destroySession(token);
     return send(req, res, 200, { ok: true }, { "Set-Cookie": sessionCookie(req, "", null) });
@@ -371,7 +377,18 @@ async function route(req, res) {
   if (p.startsWith("/api/platform/")) {
     const who = await platformPrincipal(req);
     const admin = who.user;
-    if (m === "GET" && p === "/api/platform/me") return send(req, res, 200, { id: admin.id, username: admin.username, name: admin.name, rowSecurity: db.rowSecurityEnabled() });
+    if (m === "GET" && p === "/api/platform/me") {
+      return send(req, res, 200, { id: admin.id, username: admin.username, name: admin.name, mustChangePassword: admin.must_change_password, rowSecurity: db.rowSecurityEnabled() });
+    }
+    if (m === "POST" && p === "/api/platform/password") {
+      const b = await readJson(req);
+      await platform.changeOwnPassword(admin, b.current, b.next);
+      await auth.destroyUserSessions(admin.id, who.token);
+      await auth.audit(null, `${admin.name} (Platform admin)`, "Changed own password", admin.username, ip);
+      return send(req, res, 200, { ok: true });
+    }
+    // an administrator given a temporary password chooses their own before anything else
+    if (admin.must_change_password) throw new HttpError(403, "Choose a new password first.", { mustChangePassword: true });
     if (m === "GET" && p === "/api/platform/schools") return send(req, res, 200, await platform.listSchools());
     if (m === "GET" && p === "/api/platform/audit") return send(req, res, 200, await platform.platformAudit());
     if (m === "POST" && p === "/api/platform/schools") return send(req, res, 200, await platform.createSchool(admin, await readJson(req), ip));
@@ -383,10 +400,20 @@ async function route(req, res) {
     if (m === "POST" && (r = /^\/api\/platform\/schools\/([0-9a-f-]{36})\/reset-proprietor$/.exec(p))) {
       return send(req, res, 200, await platform.resetProprietor(admin, r[1], ip));
     }
-    if (m === "POST" && p === "/api/platform/password") {
-      const b = await readJson(req);
-      await platform.changeOwnPassword(admin, b.current, b.next);
+    if (m === "GET" && p === "/api/platform/system") return send(req, res, 200, await platform.systemInfo());
+    if (m === "GET" && p === "/api/platform/settings") return send(req, res, 200, platformSettings.get());
+    if (m === "POST" && p === "/api/platform/settings") return send(req, res, 200, await platform.updateSettings(admin, (await readJson(req)).patch, ip));
+    if (m === "GET" && p === "/api/platform/admins") return send(req, res, 200, await platform.listAdmins(admin));
+    if (m === "POST" && p === "/api/platform/admins") return send(req, res, 200, await platform.createAdmin(admin, await readJson(req), ip));
+    if (m === "POST" && (r = /^\/api\/platform\/admins\/([0-9a-f-]{36})\/reset$/.exec(p))) return send(req, res, 200, await platform.resetAdmin(admin, r[1], ip));
+    if (m === "POST" && (r = /^\/api\/platform\/admins\/([0-9a-f-]{36})\/remove$/.exec(p))) {
+      await platform.removeAdmin(admin, r[1], ip);
+      return send(req, res, 200, { ok: true });
+    }
+    if (m === "GET" && p === "/api/platform/sessions") return send(req, res, 200, await platform.mySessions(admin, who.token));
+    if (m === "POST" && p === "/api/platform/sessions/sign-out-others") {
       await auth.destroyUserSessions(admin.id, who.token);
+      await auth.audit(null, `${admin.name} (Platform admin)`, "Signed out other sessions", admin.username, ip);
       return send(req, res, 200, { ok: true });
     }
   }

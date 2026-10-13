@@ -118,7 +118,7 @@ function ProfilePanel({ db, act }) {
         {color("accent", "Highlight colour (buttons)")}
         {color("banner", "Sign-in banner colour")}
       </div>
-      <p className="muted" style={{ fontSize: 12.5 }}>New pupils get admission numbers like {prefix || db.school.code}/{String(s.currentYear).slice(0, 4)}/001. Your school code for signing in is <b className="mono">{db.school.code}</b>.</p>
+      <p className="muted" style={{ fontSize: 14 }}>New pupils get admission numbers like {prefix || db.school.code}/{String(s.currentYear).slice(0, 4)}/001. Your school code for signing in is <b className="mono">{db.school.code}</b>.</p>
       <SaveBar state={state} onSave={() => save("updateSettings", { patch: { name, motto, location, currency, admissionPrefix: prefix, colors } })} label="Save profile" />
     </Panel>
   );
@@ -150,7 +150,7 @@ function CalendarPanel({ db, act }) {
           </select>
         </label>
       </div>
-      <p className="muted" style={{ fontSize: 12.5, marginBottom: 6 }}>Terms in the year, in order:</p>
+      <p className="muted" style={{ fontSize: 14, marginBottom: 6 }}>Terms in the year, in order:</p>
       <ListEditor items={terms} setItems={setTerms} placeholder="Term name" />
       {changing && <div className="notice" style={{ marginTop: 12 }}>When you save, each pupil's fee from the current term is copied to the new term. You can then change fees in Finance.</div>}
       <SaveBar state={state} onSave={onSave} label="Save calendar" />
@@ -165,8 +165,8 @@ function ClassesPanel({ db, act }) {
   return (
     <Panel title="Classes">
       <ListEditor items={items} setItems={setItems} placeholder="Class name, e.g. JSS1"
-        extra={(it) => it.id ? <span className="muted" style={{ fontSize: 12, whiteSpace: "nowrap" }}>{counts[it.id] || 0} pupils</span> : null} />
-      <p className="muted" style={{ fontSize: 12.5 }}>A class with pupils in it cannot be removed. Move its pupils first by editing them.</p>
+        extra={(it) => it.id ? <span className="muted" style={{ fontSize: 13.5, whiteSpace: "nowrap" }}>{counts[it.id] || 0} pupils</span> : null} />
+      <p className="muted" style={{ fontSize: 14 }}>A class with pupils in it cannot be removed. Move its pupils first by editing them.</p>
       <SaveBar state={state} onSave={() => save("saveClasses", { classes: items.filter((i) => i.name.trim()) })} label="Save classes" />
     </Panel>
   );
@@ -178,7 +178,7 @@ function SubjectsPanel({ db, act }) {
   return (
     <Panel title="Subjects">
       <ListEditor items={items} setItems={setItems} placeholder="Subject name" />
-      <p className="muted" style={{ fontSize: 12.5 }}>Renaming a subject keeps its grades. Removing a subject hides it from report cards; its past grades stay in backups.</p>
+      <p className="muted" style={{ fontSize: 14 }}>Renaming a subject keeps its grades. Removing a subject hides it from report cards; its past grades stay in backups.</p>
       <SaveBar state={state} onSave={() => save("saveSubjects", { subjects: items.filter((i) => i.name.trim()) })} label="Save subjects" />
     </Panel>
   );
@@ -190,10 +190,10 @@ function AssessmentPanel({ db, act }) {
   const total = parts.reduce((s, p) => s + (Number(p.max) || 0), 0);
   return (
     <Panel title="How marks are made up">
-      <p className="muted" style={{ fontSize: 12.5, marginTop: 0 }}>Each subject's total is out of 100. List the parts and the most marks each can earn. Best set before the year starts.</p>
+      <p className="muted" style={{ fontSize: 14, marginTop: 0 }}>Each subject's total is out of 100. List the parts and the most marks each can earn. Best set before the year starts.</p>
       <ListEditor items={parts} setItems={setParts} placeholder="Part name, e.g. Exam"
         extra={(it, i, update) => <input className="narrow" type="number" min="1" max="100" value={it.max ?? ""} onChange={(e) => update(i, { max: e.target.value })} aria-label="Maximum marks" />} />
-      <p style={{ fontSize: 13, color: total === 100 ? "var(--ink)" : "var(--red)" }}>Total: {total} / 100</p>
+      <p style={{ fontSize: 14.5, color: total === 100 ? "var(--ink)" : "var(--red)" }}>Total: {total} / 100</p>
       <SaveBar state={state} onSave={() => save("updateSettings", { patch: { assessment: parts.filter((p) => p.name.trim()).map((p) => ({ key: p.key, label: p.name.trim(), max: Number(p.max) })) } })} label="Save marks breakdown" />
     </Panel>
   );

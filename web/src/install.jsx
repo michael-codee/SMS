@@ -59,7 +59,7 @@ export function InstallButton({ className = "btn-ghost btn-small", block = false
     return (
       <div style={{ textAlign: "center" }}>
         <button type="button" className={className + (block ? " btn-full" : "")} onClick={() => setShowIosHelp(!showIosHelp)}>Install app</button>
-        {showIosHelp && <p className="muted" style={{ fontSize: 12, margin: "6px 0 0" }}>Tap the Share button, then <b>Add to Home Screen</b>.</p>}
+        {showIosHelp && <p className="muted" style={{ fontSize: 13.5, margin: "6px 0 0" }}>Tap the Share button, then <b>Add to Home Screen</b>.</p>}
       </div>
     );
   }

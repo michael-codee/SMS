@@ -3,6 +3,7 @@ import { api, ApiError, readImageFile } from "./api.js";
 import { InstallButton, useSchoolManifest } from "./install.jsx";
 import { SchoolSetupView } from "./SchoolSetup.jsx";
 import { APP_NAME, APP_LOGO } from "./brand.js";
+import { Icon, NAV_ICONS } from "./icons.jsx";
 
 /* ============================================================
    ELITE SMART SCHOOL SYSTEMS — web app
@@ -95,7 +96,7 @@ function Seal({ size = 46 }) {
     <svg className="seal-img" width={size} height={h} viewBox="0 0 100 120" role="img" aria-label={`${school.name} crest`} style={{ flexShrink: 0 }}>
       <path d="M50 4 94 18v38c0 30-19 52-44 60C25 108 6 86 6 56V18z" fill="var(--ink)" />
       <path d="M50 12 86 23v33c0 25-15 43-36 51C29 99 14 81 14 56V23z" fill="none" stroke="var(--gold)" strokeWidth="3" />
-      <text x="50" y="70" textAnchor="middle" fontFamily="Fraunces, serif" fontWeight="700" fontSize={initials(school.name).length > 2 ? 26 : 32} fill="#fff">{initials(school.name)}</text>
+      <text x="50" y="70" textAnchor="middle" fontFamily="Poppins, sans-serif" fontWeight="700" fontSize={initials(school.name).length > 2 ? 26 : 32} fill="#fff">{initials(school.name)}</text>
     </svg>
   );
 }
@@ -444,7 +445,7 @@ function CommentsModal({ db, pupilId, term, onClose, onSave }) {
 
   return (
     <Modal title={`Report comments — ${pupil?.name || ""}`} onClose={onClose} wide>
-      <p className="muted" style={{ fontSize: 13, marginTop: 0 }}>{term === "combined" ? "End-of-year (cumulative) report card" : `${term} report card`}, {CURRENT_YEAR}.</p>
+      <p className="muted" style={{ fontSize: 14.5, marginTop: 0 }}>{term === "combined" ? "End-of-year (cumulative) report card" : `${term} report card`}, {CURRENT_YEAR}.</p>
       <div className="form-grid">
         {canTeacher && (
           <label className="form-span">Class Teacher's comment
@@ -618,7 +619,7 @@ function SubmitQuestionModal({ db, onClose, onSave }) {
 
   return (
     <Modal title="Submit Exam Questions" onClose={onClose} wide>
-      <p style={{ fontSize: 13, color: "var(--muted)", marginTop: 0 }}>
+      <p style={{ fontSize: 14.5, color: "var(--muted)", marginTop: 0 }}>
         This will be sent to the Exam Officer for review and approval.
       </p>
       <div className="form-grid">
@@ -683,7 +684,7 @@ function PaymentModal({ db, onClose, onSave, onReceipt }) {
           <input type="text" maxLength={200} value={note} onChange={(e) => setNote(e.target.value)} placeholder="e.g. Part payment" />
         </label>
       </div>
-      <p className="muted" style={{ fontSize: 12.5 }}>Term fee {money(fee.termFee)} · paid {money(fee.paid)} · balance {money(balance)}</p>
+      <p className="muted" style={{ fontSize: 14 }}>Term fee {money(fee.termFee)} · paid {money(fee.paid)} · balance {money(balance)}</p>
       {error && <div className="form-error" style={{ marginTop: 12 }}>{error}</div>}
       <div className="modal-actions">
         <button className="btn-ghost" onClick={onClose}>Cancel</button>
@@ -760,7 +761,7 @@ function FeeModal({ db, pupilId, onClose, onSave }) {
           <input type="number" min="0" value={amount} onChange={(e) => setAmount(e.target.value)} placeholder="e.g. 3500" />
         </label>
       </div>
-      {mode === "class" && !pupilId && <p className="muted" style={{ fontSize: 12.5 }}>This sets the same fee for every pupil currently in the class. You can change single pupils afterwards.</p>}
+      {mode === "class" && !pupilId && <p className="muted" style={{ fontSize: 14 }}>This sets the same fee for every pupil currently in the class. You can change single pupils afterwards.</p>}
       {error && <div className="form-error" style={{ marginTop: 12 }}>{error}</div>}
       <div className="modal-actions">
         <button className="btn-ghost" onClick={onClose}>Cancel</button>
@@ -813,6 +814,8 @@ function LoginScreen({ onLoggedIn, notice, onDismissNotice, onBrand }) {
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
+  const platform = usePlatformNotice();
+  const support = platform.supportContact;
 
   useEffect(() => {
     if (notice) {
@@ -856,6 +859,7 @@ function LoginScreen({ onLoggedIn, notice, onDismissNotice, onBrand }) {
     <div className="login-screen">
       <div className="login-card">
         {notice && <div className="notice" style={{ marginBottom: 18 }}>{notice}</div>}
+        {platform.notice && <PlatformNotice text={platform.notice} />}
         <div className="login-brand">
           <Seal size={64} />
           <div>
@@ -876,9 +880,10 @@ function LoginScreen({ onLoggedIn, notice, onDismissNotice, onBrand }) {
           </label>
           {error && <div className="form-error" role="alert">{error}</div>}
           <button type="button" className="btn-primary btn-full" disabled={busy} onClick={submit}>{busy ? "Signing in…" : "Sign in"}</button>
-          <p className="muted" style={{ fontSize: 12, margin: 0, textAlign: "center" }}>Forgot your password? Ask your school's Proprietor to reset it.</p>
+          <p className="muted" style={{ fontSize: 14.5, margin: 0, textAlign: "center" }}>Forgot your password? Ask your school's Proprietor to reset it.</p>
+          {support && <p className="muted" style={{ fontSize: 14.5, margin: 0, textAlign: "center" }}>Need help? {support}</p>}
           <InstallButton block />
-          <p className="muted" style={{ fontSize: 12, margin: 0, textAlign: "center" }}><a href="/platform">Platform administrator sign-in</a> (no school code needed)</p>
+          <p className="muted" style={{ fontSize: 13.5, margin: 0, textAlign: "center" }}><a className="text-link" href="/platform">Platform administrator sign-in</a> (no school code needed)</p>
         </div>
       </div>
     </div>
@@ -959,6 +964,7 @@ function Shell({ user, view, setView, onLogout, onChangePassword, children }) {
   const items = NAV[user.role];
   const [collapsed, setCollapsed] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
+  const platform = usePlatformNotice();
 
   const selectView = (key) => { setView(key); setMobileOpen(false); };
 
@@ -982,7 +988,7 @@ function Shell({ user, view, setView, onLogout, onChangePassword, children }) {
         <nav>
           {items.map(([key, label]) => (
             <button key={key} className={"nav-item" + (view === key ? " nav-active" : "")} onClick={() => selectView(key)} title={collapsed ? label : undefined}>
-              <span className="nav-dot" />
+              <Icon name={NAV_ICONS[key]} />
               {!collapsed && <span>{label}</span>}
             </button>
           ))}
@@ -1001,10 +1007,24 @@ function Shell({ user, view, setView, onLogout, onChangePassword, children }) {
       </aside>
       <div className="content-area">
         <button className="mobile-menu-btn" onClick={() => setMobileOpen(true)} aria-label="Open menu">☰ Menu</button>
-        <main className="content">{children}</main>
+        <main className="content" key={view}>
+          {platform.notice && <PlatformNotice text={platform.notice} />}
+          {children}
+        </main>
       </div>
     </div>
   );
+}
+
+/* A message from the platform administrators to every school (e.g. planned maintenance). */
+function usePlatformNotice() {
+  const [n, setN] = useState({ notice: "", supportContact: "" });
+  useEffect(() => { api.publicNotice().then(setN).catch(() => {}); }, []);
+  return n;
+}
+
+function PlatformNotice({ text }) {
+  return <div className="platform-notice" role="status"><Icon name="megaphone" size={18} /><span>{text}</span></div>;
 }
 
 /* ================= Role dashboards ================= */
@@ -1504,7 +1524,7 @@ function AccountsView({ db, setModal, act }) {
                           <button className="btn-ghost btn-small" onClick={() => setModal({ type: "parentchildren", userId: u.id })}>Children</button>
                         )}
                         {isSelf ? (
-                          <span className="muted" style={{ fontSize: 12, whiteSpace: "nowrap" }}>This is you</span>
+                          <span className="muted" style={{ fontSize: 13.5, whiteSpace: "nowrap" }}>This is you</span>
                         ) : (
                           <button className="btn-ghost btn-small" onClick={() => doAct("toggleAccountActive", { userId: u.id })}>
                             {isActive ? "Disable" : "Enable"}
@@ -1607,19 +1627,19 @@ function SettingsView({ db, act }) {
             <input type="number" min="1" max="20" value={lockoutThreshold} onChange={(e) => setLockoutThreshold(e.target.value)} />
           </label>
         </div>
-        <p className="muted" style={{ fontSize: 12.5, marginBottom: 14 }}>
+        <p className="muted" style={{ fontSize: 14, marginBottom: 14 }}>
           Signed-in users are automatically signed out after this many minutes without activity.
           An account is locked after this many failed sign-in attempts in a row, and must be unlocked from User Accounts.
         </p>
         {error && <div className="form-error" style={{ marginBottom: 12 }}>{error}</div>}
         <div className="modal-actions" style={{ justifyContent: "flex-start", marginTop: 0 }}>
           <button className="btn-primary" onClick={saveSecurityPolicy}>Save security policy</button>
-          {saved && <span style={{ color: "var(--ink)", fontSize: 13, alignSelf: "center" }}>Saved.</span>}
+          {saved && <span style={{ color: "var(--ink)", fontSize: 14.5, alignSelf: "center" }}>Saved.</span>}
         </div>
       </Panel>
 
       <Panel title="Backup & Restore">
-        <p className="muted" style={{ fontSize: 12.5, marginTop: 0 }}>
+        <p className="muted" style={{ fontSize: 14, marginTop: 0 }}>
           Download a full copy of every pupil, staff member, grade, payment and comment in your school. Keep it somewhere safe,
           such as a USB stick or your email. Restoring a backup replaces all school records with those in the file; user accounts and passwords are not changed.
         </p>
@@ -1635,7 +1655,7 @@ function SettingsView({ db, act }) {
       </Panel>
 
       <Panel title="Automatic backups">
-        <p className="muted" style={{ fontSize: 12.5, marginTop: 0 }}>The system saves a copy of your school's records every day and keeps the last 30 days.</p>
+        <p className="muted" style={{ fontSize: 14, marginTop: 0 }}>The system saves a copy of your school's records every day and keeps the last 30 days.</p>
         {snapshots === null ? <p className="muted">Loading…</p> : snapshots.length === 0 ? <p className="muted">The first automatic backup is made within a day.</p> : (
           <table className="data-table">
             <thead><tr><th>When</th><th>Type</th><th></th></tr></thead>
@@ -1654,7 +1674,7 @@ function SettingsView({ db, act }) {
 
       {pendingRestore && (
         <Modal title="Restore from Backup?" onClose={() => setPendingRestore(null)}>
-          <p style={{ fontSize: 13.5, color: "var(--muted)", marginTop: 0 }}>
+          <p style={{ fontSize: 15, color: "var(--muted)", marginTop: 0 }}>
             This will replace <b style={{ color: "var(--ink)" }}>all current school records</b> (pupils, staff, grades, attendance, fees,
             payments, announcements and settings) with the contents of this file, saved on {formatTimestamp(pendingRestore.exportedAt)}.
             A copy of today's records is kept first, so this can be undone by restoring that copy.
@@ -1687,7 +1707,7 @@ function ResetPasswordModal({ username, name, tempPassword, onClose, created, sc
 
   return (
     <Modal title={created ? "Account created" : "Temporary Password Issued"} onClose={onClose}>
-      <p style={{ fontSize: 13.5, color: "var(--muted)", marginTop: 0 }}>
+      <p style={{ fontSize: 15, color: "var(--muted)", marginTop: 0 }}>
         {created ? "The account for " : "A new temporary password has been set for "}<b style={{ color: "var(--ink)" }}>{name}</b> is ready.
         Give them these details in person or by phone. They will be asked to choose their own password when they first sign in.
       </p>
@@ -1699,7 +1719,7 @@ function ResetPasswordModal({ username, name, tempPassword, onClose, created, sc
         <span className="mono temp-pwd-value">{tempPassword}</span>
         <button type="button" className="btn-ghost btn-small" onClick={copy}>{copied ? "Copied" : "Copy"}</button>
       </div>
-      <p className="muted" style={{ fontSize: 12 }}>This password is shown only once. If it is lost, reset it again.</p>
+      <p className="muted" style={{ fontSize: 13.5 }}>This password is shown only once. If it is lost, reset it again.</p>
       <div className="modal-actions">
         <button className="btn-primary" onClick={onClose}>Done</button>
       </div>
@@ -1818,7 +1838,7 @@ function CreateAccountModal({ db, onClose, onSave }) {
           </label>
         )}
       </div>
-      <p className="muted" style={{ fontSize: 12.5 }}>A temporary password is created automatically and shown on the next screen.</p>
+      <p className="muted" style={{ fontSize: 14 }}>A temporary password is created automatically and shown on the next screen.</p>
       {error && <div className="form-error" style={{ marginTop: 12 }}>{error}</div>}
       <div className="modal-actions">
         <button className="btn-ghost" onClick={() => onClose()}>Cancel</button>
@@ -1910,7 +1930,7 @@ function RegisterPupilModal({ db, onClose, onSave, editId }) {
   return (
     <Modal title={existing ? `Edit pupil — ${existing.admissionNo}` : "Register a New Pupil"} onClose={() => onClose()} wide>
       {!existing && (
-        <p style={{ fontSize: 13, color: "var(--muted)", marginTop: 0 }}>
+        <p style={{ fontSize: 14.5, color: "var(--muted)", marginTop: 0 }}>
           This adds the pupil to school records, and an admission number is generated automatically.
           To also give them a login, create an account for them afterwards from User Accounts.
         </p>
@@ -1999,7 +2019,7 @@ function RegisterStaffModal({ db, onClose, onSave, editId }) {
   return (
     <Modal title={existing ? `Edit staff — ${existing.name}` : "Register New Staff"} onClose={() => onClose()} wide>
       {!existing && (
-        <p style={{ fontSize: 13, color: "var(--muted)", marginTop: 0 }}>
+        <p style={{ fontSize: 14.5, color: "var(--muted)", marginTop: 0 }}>
           This adds the staff member to school records and assigns them to a class. No login is created.
           To also give them a login, create an account for them afterwards from User Accounts.
         </p>
@@ -2717,7 +2737,8 @@ export default function App() {
       setDb(r.data);
       setStatus("ready");
     } catch (e) {
-      if (e instanceof ApiError && e.status === 401) {
+      // 403: this browser is signed in to platform administration, not to a school
+      if (e instanceof ApiError && (e.status === 401 || e.status === 403)) {
         signedOut(e.body && e.body.expired ? "You were signed out after a period of inactivity. Please sign in again." : "");
       } else if (passive) {
         setConnectionError("Can't reach the server right now. Your screen may be out of date; it will refresh when the connection returns.");
@@ -2898,25 +2919,32 @@ export default function App() {
 export { Panel, Modal, Pill, Seal, StatCard, useSave, useSchool, formatTimestamp, money, CSS };
 
 const CSS = `
-@import url('https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@500;600;700&family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap');
 
 .dia-root {
-  --ink: #1B3A2E;
-  --ink-light: #2B5240;
-  --gold: #B98A2C;
-  --gold-light: #E3C878;
-  --paper: #FAF7EF;
-  --panel: #F3EFE2;
-  --sage: #E7ECE1;
-  --text: #262620;
-  --muted: #746F60;
-  --red: #A63D31;
-  --red-bg: #F5E3DF;
-  --gold-bg: #F1E6C9;
-  --royal-blue: #4169E1;
-  --royal-blue-dark: #2E4FB8;
-  --border: #DCD3B8;
-  font-family: 'IBM Plex Sans', sans-serif;
+  --ink: #12355B;
+  --ink-light: #1E4D80;
+  --gold: #E9A23B;
+  --gold-light: #F7D58B;
+  --paper: #F4F7FB;
+  --panel: #EDF2F8;
+  --sage: #E8F0FA;
+  --text: #1E2A3A;
+  --muted: #5B6B7F;
+  --red: #B42318;
+  --red-bg: #FDECEA;
+  --gold-bg: #FDF1DC;
+  --green: #1F7A4D;
+  --royal-blue: #1E5BB8;
+  --royal-blue-dark: #164795;
+  --border: #D5DFEB;
+  --line: #E6EDF5;
+  --shadow: 0 1px 2px rgba(18,53,91,0.06), 0 2px 8px rgba(18,53,91,0.05);
+  --shadow-lift: 0 10px 24px rgba(18,53,91,0.13);
+  font-family: 'Inter', system-ui, sans-serif;
+  font-size: 17px;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
   color: var(--text);
   background: var(--paper);
   min-height: 100vh;
@@ -2927,18 +2955,18 @@ const CSS = `
 
 /* login */
 .login-screen { min-height: 100vh; display: flex; align-items: center; justify-content: center; background:
-  radial-gradient(circle at 15% 10%, rgba(185,138,44,0.10), transparent 45%),
-  radial-gradient(circle at 85% 90%, rgba(27,58,46,0.08), transparent 45%), var(--paper); padding: 24px; }
-.login-card { width: 100%; max-width: 480px; background: #fff; border: 1px solid var(--border); border-radius: 4px; padding: 36px; box-shadow: 0 20px 50px rgba(27,58,46,0.10); }
+  radial-gradient(circle at 15% 10%, rgba(233,162,59,0.10), transparent 45%),
+  radial-gradient(circle at 85% 90%, rgba(18,53,91,0.08), transparent 45%), var(--paper); padding: 24px; }
+.login-card { width: 100%; max-width: 480px; background: #fff; border: 1px solid var(--border); border-radius: 12px; padding: 36px; box-shadow: 0 20px 50px rgba(18,53,91,0.10); }
 .login-brand { display: flex; align-items: center; gap: 14px; margin-bottom: 26px; padding-bottom: 22px; border-bottom: 2px solid var(--royal-blue); }
-.brand-name { font-family: 'Fraunces', serif; font-weight: 700; font-size: 16px; color: #FFFFFF; background: var(--banner, #003399); letter-spacing: 0.3px; line-height: 1.3; padding: 6px 12px; border-radius: 3px; display: inline-block; }
-.brand-sub { font-size: 13px; font-weight: 700; color: var(--ink); margin-top: 6px; text-align: center; }
-.brand-motto { font-size: 11.5px; color: var(--gold); font-style: italic; margin-top: 6px; letter-spacing: 0.3px; text-align: center; }
+.brand-name { font-family: 'Poppins', sans-serif; font-weight: 700; font-size: 18px; color: #FFFFFF; background: var(--banner, #1E5BB8); letter-spacing: 0.3px; line-height: 1.3; padding: 6px 12px; border-radius: 8px; display: inline-block; }
+.brand-sub { font-size: 14.5px; font-weight: 700; color: var(--ink); margin-top: 6px; text-align: center; }
+.brand-motto { font-size: 13px; color: var(--gold); font-style: italic; margin-top: 6px; letter-spacing: 0.3px; text-align: center; }
 .login-form { display: flex; flex-direction: column; gap: 14px; }
-.login-form label { display: flex; flex-direction: column; gap: 6px; font-size: 13px; color: var(--muted); font-weight: 500; }
-.login-form input { font-family: inherit; padding: 11px 12px; border: 1.5px solid var(--royal-blue); border-radius: 3px; font-size: 14px; background: var(--paper); color: var(--text); }
+.login-form label { display: flex; flex-direction: column; gap: 6px; font-size: 14.5px; color: var(--muted); font-weight: 500; }
+.login-form input { font-family: inherit; padding: 11px 12px; border: 1.5px solid var(--royal-blue); border-radius: 8px; font-size: 15.5px; background: var(--paper); color: var(--text); }
 .login-form input:focus { outline: 2px solid var(--royal-blue); outline-offset: 1px; border-color: var(--royal-blue); }
-.form-error { background: var(--red-bg); color: var(--red); font-size: 13px; padding: 9px 11px; border-radius: 3px; }
+.form-error { background: var(--red-bg); color: var(--red); font-size: 14.5px; padding: 9px 11px; border-radius: 8px; }
 
 .loading-screen { min-height: 100vh; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 14px; color: var(--muted); }
 
@@ -2947,111 +2975,111 @@ const CSS = `
 
 /* shell */
 .shell { display: flex; min-height: 100vh; }
-.sidebar { width: 240px; background: #FFFFFF; color: var(--text); display: flex; flex-direction: column; padding: 22px 16px; position: relative; flex-shrink: 0; transition: width 0.18s ease; border-right: 1px solid var(--border); }
-.sidebar::after { content: ""; position: absolute; left: 6px; top: 0; bottom: 0; width: 1px; background: rgba(185,138,44,0.25); box-shadow: 4px 0 0 rgba(185,138,44,0.10); }
+.sidebar { width: 264px; background: #FFFFFF; color: var(--text); display: flex; flex-direction: column; padding: 22px 16px; position: relative; flex-shrink: 0; transition: width 0.18s ease; border-right: 1px solid var(--border); }
+.sidebar::after { content: ""; position: absolute; left: 6px; top: 0; bottom: 0; width: 1px; background: rgba(233,162,59,0.25); box-shadow: 4px 0 0 rgba(233,162,59,0.10); }
 .shell-collapsed .sidebar { width: 72px; padding: 22px 12px; }
 .shell-collapsed .sidebar-brand { justify-content: center; }
 .sidebar-brand { display: flex; align-items: center; gap: 10px; padding: 4px 6px 20px; border-bottom: 1px solid var(--border); margin-bottom: 16px; position: relative; }
-.sb-name { font-family: 'Fraunces', serif; font-weight: 600; font-size: 16.5px; color: var(--ink); line-height: 1.25; }
-.sb-motto { font-size: 11px; color: var(--gold); font-style: italic; margin-top: 3px; letter-spacing: 0.1px; line-height: 1.3; }
-.sb-sub { font-size: 12.5px; color: var(--muted); letter-spacing: 0.5px; margin-top: 2px; }
-.collapse-btn { position: absolute; right: -12px; top: 4px; width: 24px; height: 24px; border-radius: 50%; background: var(--gold); color: #fff; border: 2px solid #fff; box-shadow: 0 1px 4px rgba(0,0,0,0.15); font-size: 12px; font-weight: 700; cursor: pointer; display: flex; align-items: center; justify-content: center; }
+.sb-name { font-family: 'Poppins', sans-serif; font-weight: 600; font-size: 18.5px; color: var(--ink); line-height: 1.25; }
+.sb-motto { font-size: 12.5px; color: var(--gold); font-style: italic; margin-top: 3px; letter-spacing: 0.1px; line-height: 1.3; }
+.sb-sub { font-size: 14px; color: var(--muted); letter-spacing: 0.5px; margin-top: 2px; }
+.collapse-btn { position: absolute; right: -12px; top: 4px; width: 24px; height: 24px; border-radius: 50%; background: var(--gold); color: #fff; border: 2px solid #fff; box-shadow: 0 1px 4px rgba(0,0,0,0.15); font-size: 13.5px; font-weight: 700; cursor: pointer; display: flex; align-items: center; justify-content: center; }
 .shell-collapsed .collapse-btn { position: static; margin-top: 10px; border: 1px solid var(--border); background: transparent; color: var(--muted); box-shadow: none; }
 .sidebar nav { display: flex; flex-direction: column; gap: 3px; flex: 1; }
-.nav-item { display: flex; align-items: center; gap: 10px; text-align: left; background: transparent; border: none; color: var(--text); font-family: inherit; font-size: 15px; padding: 11px 12px; border-radius: 3px; cursor: pointer; white-space: nowrap; overflow: hidden; }
+.nav-item { display: flex; align-items: center; gap: 10px; text-align: left; background: transparent; border: none; color: var(--text); font-family: inherit; font-size: 17px; padding: 11px 12px; border-radius: 8px; cursor: pointer; white-space: nowrap; overflow: hidden; }
 .nav-item:hover { background: var(--sage); }
-.nav-active { background: var(--gold); color: #fff; font-weight: 600; }
+.nav-active, .nav-active:hover { background: var(--ink); color: #fff; font-weight: 600; box-shadow: inset 4px 0 0 var(--gold); }
 .nav-dot { width: 5px; height: 5px; border-radius: 50%; background: currentColor; opacity: 0.55; flex-shrink: 0; }
 .nav-active .nav-dot { opacity: 1; }
 .shell-collapsed .nav-item { justify-content: center; padding: 10px; }
 .sidebar-foot { border-top: 1px solid var(--border); padding-top: 14px; display: flex; flex-direction: column; gap: 10px; }
-.sidebar-foot .btn-ghost { color: var(--ink); border-color: var(--border); font-size: 13.5px; padding: 8px 12px; }
+.sidebar-foot .btn-ghost { color: var(--ink); border-color: var(--border); font-size: 15px; padding: 8px 12px; }
 .sidebar-foot .btn-ghost:hover { background: var(--sage); }
 .shell-collapsed .sidebar-foot { align-items: center; }
-.who-name { font-size: 14.5px; color: var(--ink); font-weight: 500; }
-.who-role { font-size: 13px; color: var(--muted); }
+.who-name { font-size: 16px; color: var(--ink); font-weight: 500; }
+.who-role { font-size: 14.5px; color: var(--muted); }
 .sidebar-scrim { display: none; }
 .mobile-menu-btn { display: none; }
 .content-area { flex: 1; min-width: 0; }
 
 .content { padding: 32px 40px; max-width: 1100px; }
-.content h1 { font-family: 'Fraunces', serif; font-size: 26px; font-weight: 600; color: var(--ink); margin: 0 0 4px; }
-.lead { color: var(--muted); margin: 0 0 22px; font-size: 14px; }
+.content h1 { font-family: 'Poppins', sans-serif; font-size: 29px; font-weight: 600; color: var(--ink); margin: 0 0 4px; }
+.lead { color: var(--muted); margin: 0 0 22px; font-size: 15.5px; }
 
 /* stat cards */
 .stat-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 14px; margin-bottom: 26px; }
-.stat-card { background: #fff; border: 1px solid var(--border); border-radius: 4px; padding: 16px 18px; border-top: 3px solid var(--ink); }
+.stat-card { background: #fff; border: 1px solid var(--border); border-radius: 12px; padding: 16px 18px; border-top: 3px solid var(--ink); }
 .stat-gold { border-top-color: var(--gold); }
 .stat-red { border-top-color: var(--red); }
-.stat-label { font-size: 12px; color: var(--muted); margin-bottom: 6px; }
-.stat-value { font-family: 'Fraunces', serif; font-size: 24px; font-weight: 600; color: var(--ink); }
-.stat-sub { font-size: 11.5px; color: var(--muted); margin-top: 4px; }
+.stat-label { font-size: 13.5px; color: var(--muted); margin-bottom: 6px; }
+.stat-value { font-family: 'Poppins', sans-serif; font-size: 26px; font-weight: 600; color: var(--ink); }
+.stat-sub { font-size: 13px; color: var(--muted); margin-top: 4px; }
 
 /* panels */
-.panel { background: #fff; border: 1px solid var(--border); border-radius: 4px; margin-bottom: 20px; overflow: hidden; }
+.panel { background: #fff; border: 1px solid var(--border); border-radius: 12px; margin-bottom: 20px; overflow: hidden; }
 .panel-head { display: flex; align-items: center; justify-content: space-between; padding: 14px 18px; border-bottom: 1px solid var(--border); background: var(--sage); }
-.panel-head h3 { margin: 0; font-family: 'Fraunces', serif; font-size: 15.5px; color: var(--ink); font-weight: 600; }
+.panel-head h3 { margin: 0; font-family: 'Poppins', sans-serif; font-size: 17.5px; color: var(--ink); font-weight: 600; }
 .panel-body { padding: 6px 18px 14px; }
 
-.data-table { width: 100%; border-collapse: collapse; font-size: 13.5px; }
-.data-table th { text-align: left; font-size: 11.5px; text-transform: uppercase; letter-spacing: 0.4px; color: var(--muted); padding: 10px 8px; border-bottom: 1px solid var(--border); }
-.data-table td { padding: 10px 8px; border-bottom: 1px solid #EEE8D6; }
+.data-table { width: 100%; border-collapse: collapse; font-size: 15px; }
+.data-table th { text-align: left; font-size: 13px; text-transform: uppercase; letter-spacing: 0.4px; color: var(--muted); padding: 10px 8px; border-bottom: 1px solid var(--border); }
+.data-table td { padding: 10px 8px; border-bottom: 1px solid var(--line); }
 .data-table tr:last-child td { border-bottom: none; }
 
 .activity-list, .announce-list { list-style: none; margin: 0; padding: 0; }
-.activity-list li { display: flex; justify-content: space-between; padding: 9px 0; border-bottom: 1px solid #EEE8D6; font-size: 13.5px; }
+.activity-list li { display: flex; justify-content: space-between; padding: 9px 0; border-bottom: 1px solid var(--line); font-size: 15px; }
 .activity-list li:last-child { border-bottom: none; }
-.activity-list time { color: var(--muted); font-size: 12px; }
-.announce-list li { padding: 12px 0; border-bottom: 1px solid #EEE8D6; }
+.activity-list time { color: var(--muted); font-size: 13.5px; }
+.announce-list li { padding: 12px 0; border-bottom: 1px solid var(--line); }
 .announce-list li:last-child { border-bottom: none; }
-.announce-meta { display: flex; justify-content: space-between; font-size: 12px; color: var(--muted); margin-bottom: 4px; }
+.announce-meta { display: flex; justify-content: space-between; font-size: 13.5px; color: var(--muted); margin-bottom: 4px; }
 .announce-meta b { color: var(--ink); font-weight: 600; }
-.announce-list p { margin: 0; font-size: 13.5px; line-height: 1.5; }
+.announce-list p { margin: 0; font-size: 15px; line-height: 1.5; }
 
 /* pills / chips */
-.pill { display: inline-block; padding: 2px 9px; border-radius: 20px; font-size: 12px; font-weight: 600; background: var(--sage); color: var(--ink); }
-.pill-gold { background: var(--gold-bg); color: #8A6414; }
+.pill { display: inline-block; padding: 2px 9px; border-radius: 20px; font-size: 13.5px; font-weight: 600; background: var(--sage); color: var(--ink); }
+.pill-gold { background: var(--gold-bg); color: #8A5A00; }
 .pill-red { background: var(--red-bg); color: var(--red); }
-.chip { border: 1px solid var(--border); background: #fff; padding: 6px 14px; border-radius: 20px; font-family: inherit; font-size: 13px; cursor: pointer; }
+.chip { border: 1px solid var(--border); background: #fff; padding: 6px 14px; border-radius: 20px; font-family: inherit; font-size: 14.5px; cursor: pointer; }
 .chip-on { background: var(--ink); color: #fff; border-color: var(--ink); }
 
 /* buttons */
-.btn-primary { background: var(--gold); color: var(--ink); border: none; padding: 10px 16px; border-radius: 3px; font-weight: 600; font-family: inherit; font-size: 13.5px; cursor: pointer; }
-.btn-primary:hover { background: #A8791E; }
+.btn-primary { background: var(--ink); color: #fff; border: none; padding: 10px 16px; border-radius: 8px; font-weight: 600; font-family: inherit; font-size: 15px; cursor: pointer; }
+.btn-primary:hover:not(:disabled) { background: var(--ink-light); }
 .btn-primary:disabled { opacity: 0.5; cursor: not-allowed; }
 .login-form .btn-primary { background: var(--royal-blue); color: #fff; }
 .login-form .btn-primary:hover { background: var(--royal-blue-dark); }
-.btn-ghost { background: transparent; border: 1px solid var(--border); color: var(--ink); padding: 10px 16px; border-radius: 3px; font-family: inherit; font-size: 13.5px; cursor: pointer; }
+.btn-ghost { background: transparent; border: 1px solid var(--border); color: var(--ink); padding: 10px 16px; border-radius: 8px; font-family: inherit; font-size: 15px; cursor: pointer; }
 .btn-ghost:hover { background: var(--sage); }
-.btn-small { padding: 7px 12px; font-size: 12.5px; }
+.btn-small { padding: 7px 12px; font-size: 14px; }
 .btn-full { width: 100%; }
-.icon-btn { background: transparent; border: none; font-size: 15px; cursor: pointer; color: var(--muted); }
+.icon-btn { background: transparent; border: none; font-size: 17px; cursor: pointer; color: var(--muted); }
 .row-actions { display: flex; align-items: center; gap: 10px; margin-bottom: 16px; flex-wrap: wrap; }
-.inline-label { display: flex; align-items: center; gap: 8px; font-size: 13px; color: var(--muted); }
-.inline-label select { padding: 7px 9px; border: 1px solid var(--border); border-radius: 3px; font-family: inherit; }
+.inline-label { display: flex; align-items: center; gap: 8px; font-size: 14.5px; color: var(--muted); }
+.inline-label select { padding: 7px 9px; border: 1px solid var(--border); border-radius: 8px; font-family: inherit; }
 
 /* modal */
-.modal-backdrop { position: fixed; inset: 0; background: rgba(27,58,46,0.45); display: flex; align-items: center; justify-content: center; z-index: 50; padding: 20px; }
-.modal-card { background: #fff; border-radius: 5px; width: 100%; max-width: 420px; max-height: 90vh; overflow-y: auto; }
+.modal-backdrop { position: fixed; inset: 0; background: rgba(18,53,91,0.45); display: flex; align-items: center; justify-content: center; z-index: 50; padding: 20px; }
+.modal-card { background: #fff; border-radius: 14px; width: 100%; max-width: 420px; max-height: 90vh; overflow-y: auto; }
 .modal-wide { max-width: 560px; }
 .modal-head { display: flex; justify-content: space-between; align-items: center; padding: 16px 20px; border-bottom: 1px solid var(--border); }
-.modal-head h3 { margin: 0; font-family: 'Fraunces', serif; font-size: 16px; color: var(--ink); }
+.modal-head h3 { margin: 0; font-family: 'Poppins', sans-serif; font-size: 18px; color: var(--ink); }
 .modal-body { padding: 18px 20px 20px; }
 .modal-actions { display: flex; justify-content: flex-end; gap: 10px; margin-top: 18px; }
 .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
 .form-span { grid-column: 1 / -1; }
-.form-grid label, .modal-body > label { display: flex; flex-direction: column; gap: 5px; font-size: 12.5px; color: var(--muted); font-weight: 500; }
-.form-grid input, .form-grid select, .modal-body input, .modal-body select, .modal-body textarea { font-family: inherit; padding: 9px 10px; border: 1px solid var(--border); border-radius: 3px; font-size: 13.5px; }
-.calc-preview { display: flex; gap: 20px; margin-top: 14px; padding: 12px 14px; background: var(--sage); border-radius: 3px; font-size: 13.5px; align-items: center; }
+.form-grid label, .modal-body > label { display: flex; flex-direction: column; gap: 5px; font-size: 14px; color: var(--muted); font-weight: 500; }
+.form-grid input, .form-grid select, .modal-body input, .modal-body select, .modal-body textarea { font-family: inherit; padding: 9px 10px; border: 1px solid var(--border); border-radius: 8px; font-size: 15px; }
+.calc-preview { display: flex; gap: 20px; margin-top: 14px; padding: 12px 14px; background: var(--sage); border-radius: 8px; font-size: 15px; align-items: center; }
 .check-row { display: flex; flex-wrap: wrap; gap: 8px; }
-.check-chip { flex-direction: row !important; align-items: center; gap: 6px !important; border: 1px solid var(--border); background: #fff; padding: 6px 10px; border-radius: 20px; font-size: 12.5px; color: var(--text) !important; font-weight: 400 !important; cursor: pointer; width: auto; }
+.check-chip { flex-direction: row !important; align-items: center; gap: 6px !important; border: 1px solid var(--border); background: #fff; padding: 6px 10px; border-radius: 20px; font-size: 14px; color: var(--text) !important; font-weight: 400 !important; cursor: pointer; width: auto; }
 .check-chip input { width: auto; padding: 0; accent-color: var(--gold); }
-.id-photo-row { display: flex; align-items: center; gap: 14px; margin-bottom: 16px; padding: 12px; background: var(--sage); border-radius: 4px; }
-.id-photo-preview { width: 64px; height: 64px; border-radius: 4px; background: #fff; border: 1px solid var(--border); display: flex; align-items: center; justify-content: center; overflow: hidden; flex-shrink: 0; }
+.id-photo-row { display: flex; align-items: center; gap: 14px; margin-bottom: 16px; padding: 12px; background: var(--sage); border-radius: 12px; }
+.id-photo-preview { width: 64px; height: 64px; border-radius: 12px; background: #fff; border: 1px solid var(--border); display: flex; align-items: center; justify-content: center; overflow: hidden; flex-shrink: 0; }
 .id-photo-preview img { width: 100%; height: 100%; object-fit: cover; }
-.id-photo-preview span { font-size: 10px; color: var(--muted); text-align: center; }
-.id-photo-input { display: flex; flex-direction: column; gap: 6px; font-size: 12.5px; color: var(--muted); font-weight: 500; }
-.id-photo-input input { font-size: 12px; }
+.id-photo-preview span { font-size: 12.5px; color: var(--muted); text-align: center; }
+.id-photo-input { display: flex; flex-direction: column; gap: 6px; font-size: 14px; color: var(--muted); font-weight: 500; }
+.id-photo-input input { font-size: 13.5px; }
 .profile-photo-wrap { display: flex; justify-content: center; margin-bottom: 16px; }
 .profile-photo { width: 96px; height: 96px; border-radius: 6px; object-fit: cover; border: 1px solid var(--border); }
 .reg-form-body { display: flex; gap: 24px; align-items: flex-start; }
@@ -3062,26 +3090,26 @@ const CSS = `
 .reg-form-field span { font-size: 10.5px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.4px; }
 .reg-form-field b { font-size: 14px; color: var(--ink); }
 .print-only-form { display: none; }
-.notice { background: var(--gold-bg); color: #8A6414; font-size: 12.5px; padding: 9px 11px; border-radius: 3px; margin-bottom: 12px; }
-.temp-pwd-box { display: flex; align-items: center; justify-content: space-between; gap: 12px; background: var(--sage); border: 1px dashed var(--gold); border-radius: 4px; padding: 12px 14px; }
-.temp-pwd-value { font-size: 16px; font-weight: 600; color: var(--ink); letter-spacing: 0.4px; }
-.audit-search { font-family: inherit; padding: 7px 10px; border: 1px solid var(--border); border-radius: 3px; font-size: 12.5px; width: 200px; }
+.notice { background: var(--gold-bg); color: #8A5A00; font-size: 14px; padding: 9px 11px; border-radius: 8px; margin-bottom: 12px; }
+.temp-pwd-box { display: flex; align-items: center; justify-content: space-between; gap: 12px; background: var(--sage); border: 1px dashed var(--gold); border-radius: 12px; padding: 12px 14px; }
+.temp-pwd-value { font-size: 18px; font-weight: 600; color: var(--ink); letter-spacing: 0.4px; }
+.audit-search { font-family: inherit; padding: 7px 10px; border: 1px solid var(--border); border-radius: 8px; font-size: 14px; width: 200px; }
 .att-list { display: flex; flex-direction: column; gap: 8px; max-height: 320px; overflow-y: auto; }
-.att-row { display: flex; align-items: center; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid #EEE8D6; font-size: 13.5px; }
+.att-row { display: flex; align-items: center; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid var(--line); font-size: 15px; }
 .seg { display: flex; gap: 6px; }
-.seg button { border: 1px solid var(--border); background: #fff; padding: 5px 11px; border-radius: 3px; font-size: 12px; cursor: pointer; font-family: inherit; }
+.seg button { border: 1px solid var(--border); background: #fff; padding: 5px 11px; border-radius: 8px; font-size: 13.5px; cursor: pointer; font-family: inherit; }
 .seg-on { background: var(--gold-bg); border-color: var(--gold); font-weight: 600; }
 .seg-red.seg-on { background: var(--red-bg); border-color: var(--red); color: var(--red); }
 
 .profile-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
 .profile-grid div { display: flex; flex-direction: column; gap: 3px; }
-.profile-grid span { font-size: 11.5px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.4px; }
-.profile-grid b { font-size: 14.5px; color: var(--ink); }
+.profile-grid span { font-size: 13px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.4px; }
+.profile-grid b { font-size: 16px; color: var(--ink); }
 
 /* report card */
-.report-card { background: #fff; border: 1px solid var(--border); border-radius: 4px; padding: 30px; max-width: 760px; }
+.report-card { background: #fff; border: 1px solid var(--border); border-radius: 12px; padding: 30px; max-width: 760px; }
 .rc-header { display: flex; align-items: center; gap: 16px; border-bottom: 2px solid var(--ink); padding-bottom: 16px; margin-bottom: 18px; }
-.rc-school { font-family: 'Fraunces', serif; font-size: 21px; font-weight: 700; color: var(--ink); letter-spacing: 0.4px; }
+.rc-school { font-family: 'Poppins', sans-serif; font-size: 21px; font-weight: 700; color: var(--ink); letter-spacing: 0.4px; }
 .rc-tagline { font-size: 12px; color: var(--gold); font-style: italic; margin: 2px 0; }
 .rc-doc { font-size: 12.5px; color: var(--muted); margin-top: 4px; }
 .rc-meta { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 20px; }
@@ -3090,13 +3118,13 @@ const CSS = `
 .rc-meta b { font-size: 13.5px; color: var(--ink); }
 .rc-table { width: 100%; border-collapse: collapse; font-size: 13px; margin-bottom: 18px; }
 .rc-table th { background: var(--sage); text-align: left; padding: 8px; font-size: 11px; text-transform: uppercase; letter-spacing: 0.3px; color: var(--ink); }
-.rc-table td { padding: 8px; border-bottom: 1px solid #EEE8D6; }
+.rc-table td { padding: 8px; border-bottom: 1px solid var(--line); }
 .rc-total { font-weight: 700; }
 .rc-empty { text-align: center; color: var(--muted); padding: 18px; }
 .rc-summary { display: flex; gap: 30px; margin-bottom: 20px; }
 .rc-summary div { display: flex; flex-direction: column; gap: 2px; }
 .rc-summary span { font-size: 10.5px; color: var(--muted); text-transform: uppercase; }
-.rc-summary b { font-family: 'Fraunces', serif; font-size: 18px; color: var(--ink); }
+.rc-summary b { font-family: 'Poppins', sans-serif; font-size: 18px; color: var(--ink); }
 .rc-comments { display: flex; flex-direction: column; gap: 12px; margin-bottom: 26px; }
 .rc-comments span { font-size: 11px; font-weight: 600; color: var(--ink); text-transform: uppercase; letter-spacing: 0.3px; }
 .rc-comments p { margin: 4px 0 0; font-size: 13px; font-style: italic; color: var(--text); }
@@ -3106,23 +3134,86 @@ const CSS = `
 .rc-sign span { font-size: 10.5px; color: var(--muted); }
 .rc-stamp { display: flex; flex-direction: column; align-items: center; gap: 4px; flex: 0; }
 
-.conn-banner { background: var(--red-bg); color: var(--red); font-size: 13px; padding: 10px 14px; border-radius: 3px; margin-bottom: 14px; }
+.conn-banner { background: var(--red-bg); color: var(--red); font-size: 14.5px; padding: 10px 14px; border-radius: 8px; margin-bottom: 14px; }
 .login-screen + .conn-banner, .conn-banner + .login-screen { margin: 0; }
 .table-scroll { width: 100%; overflow-x: auto; }
-.question-text { background: var(--sage); border-radius: 4px; padding: 12px 14px; white-space: pre-wrap; font-size: 13.5px; margin-bottom: 16px; line-height: 1.6; }
+.question-text { background: var(--sage); border-radius: 12px; padding: 12px 14px; white-space: pre-wrap; font-size: 15px; margin-bottom: 16px; line-height: 1.6; }
 .btn-primary { text-decoration: none; display: inline-block; }
 a.btn-ghost { text-decoration: none; display: inline-block; }
 .setup-row { display: flex; gap: 8px; align-items: center; margin-bottom: 8px; }
-.setup-row input { flex: 1; font-family: inherit; padding: 8px 10px; border: 1px solid var(--border); border-radius: 3px; font-size: 13.5px; min-width: 0; }
+.setup-row input { flex: 1; font-family: inherit; padding: 8px 10px; border: 1px solid var(--border); border-radius: 8px; font-size: 15px; min-width: 0; }
 .setup-row input.narrow { flex: 0 0 90px; }
 .setup-row .icon-btn { flex-shrink: 0; }
 .setup-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
-.setup-grid label { display: flex; flex-direction: column; gap: 5px; font-size: 12.5px; color: var(--muted); font-weight: 500; }
-.setup-grid input, .setup-grid select { font-family: inherit; padding: 9px 10px; border: 1px solid var(--border); border-radius: 3px; font-size: 13.5px; }
+.setup-grid label { display: flex; flex-direction: column; gap: 5px; font-size: 14px; color: var(--muted); font-weight: 500; }
+.setup-grid input, .setup-grid select { font-family: inherit; padding: 9px 10px; border: 1px solid var(--border); border-radius: 8px; font-size: 15px; }
 .color-input { display: flex; gap: 8px; align-items: center; }
 .color-input input[type=color] { width: 44px; height: 36px; padding: 2px; }
-.saved-note { color: var(--ink); font-size: 13px; align-self: center; }
+.saved-note { color: var(--ink); font-size: 14.5px; align-self: center; }
 .receipt { padding: 4px 0; }
+
+/* ---------- look and feel: cards, inputs, icons ---------- */
+.dia-root h1, .dia-root h2, .dia-root h3 { letter-spacing: -0.2px; }
+.stat-card, .panel, .login-card { box-shadow: var(--shadow); }
+.stat-card { border-top-width: 4px; }
+.panel-head { background: linear-gradient(90deg, var(--sage), #fff); }
+.data-table th { background: #F7FAFD; }
+.icon { flex-shrink: 0; }
+.nav-item .icon { opacity: 0.75; }
+.nav-active .icon, .nav-item:hover .icon { opacity: 1; }
+.nav-item { font-weight: 500; }
+.btn-icon { display: inline-flex; align-items: center; justify-content: center; gap: 8px; }
+.btn-danger { background: #fff; border: 1px solid #F1B8B2; color: var(--red); padding: 10px 16px; border-radius: 8px; font-family: inherit; font-size: 15px; cursor: pointer; }
+.btn-danger:hover { background: var(--red-bg); border-color: var(--red); }
+.btn-danger.btn-small { padding: 7px 12px; font-size: 14px; }
+.text-link { color: var(--royal-blue); text-decoration: none; font-weight: 500; }
+.text-link:hover { text-decoration: underline; }
+.link-btn { background: none; border: none; color: var(--royal-blue); font: inherit; cursor: pointer; padding: 0; }
+.link-btn:hover { text-decoration: underline; }
+.save-row { display: flex; align-items: center; justify-content: flex-end; gap: 12px; flex-wrap: wrap; margin-top: 6px; }
+.save-row .form-error { flex: 1; }
+.platform-notice { display: flex; align-items: flex-start; gap: 10px; background: var(--gold-bg); border: 1px solid var(--gold-light); border-left: 5px solid var(--gold); color: #6B4500; padding: 12px 14px; border-radius: 10px; margin-bottom: 18px; font-size: 15px; line-height: 1.45; }
+.platform-notice .icon { margin-top: 1px; color: var(--gold); }
+.form-grid textarea { font-family: inherit; padding: 10px 11px; border: 1px solid var(--border); border-radius: 8px; font-size: 15px; resize: vertical; }
+.form-grid input, .form-grid select, .modal-body input, .modal-body select, .modal-body textarea, .setup-row input, .setup-grid input, .setup-grid select, .audit-search, .inline-label select { background: #fff; transition: border-color 0.15s ease, box-shadow 0.15s ease; }
+.form-grid input:focus, .form-grid select:focus, .form-grid textarea:focus, .modal-body input:focus, .modal-body select:focus, .modal-body textarea:focus,
+.setup-row input:focus, .setup-grid input:focus, .setup-grid select:focus, .audit-search:focus, .inline-label select:focus, .login-form input:focus {
+  outline: none; border-color: var(--royal-blue); box-shadow: 0 0 0 3px rgba(30,91,184,0.18); }
+.dia-root :focus-visible { outline: 3px solid rgba(30,91,184,0.45); outline-offset: 2px; }
+.login-screen { background:
+  radial-gradient(circle at 12% 8%, rgba(233,162,59,0.16), transparent 42%),
+  radial-gradient(circle at 88% 92%, rgba(30,91,184,0.14), transparent 45%), var(--paper); }
+.login-card { border: none; border-top: 5px solid var(--ink); }
+
+/* ---------- mouse effects and gentle animation ---------- */
+.nav-item, .btn-primary, .btn-ghost, .btn-danger, .chip, .seg button, .stat-card, .panel, .data-table td, .check-chip, .collapse-btn {
+  transition: background-color 0.18s ease, color 0.18s ease, border-color 0.18s ease, box-shadow 0.2s ease, transform 0.18s ease; }
+.btn-primary:hover:not(:disabled), .btn-ghost:hover, .btn-danger:hover, .chip:hover { transform: translateY(-1px); box-shadow: 0 6px 14px rgba(18,53,91,0.14); }
+.btn-primary:active:not(:disabled), .btn-ghost:active, .btn-danger:active, .chip:active { transform: translateY(0); box-shadow: none; }
+.nav-item:hover:not(.nav-active) { transform: translateX(3px); }
+.stat-card:hover { transform: translateY(-3px); box-shadow: var(--shadow-lift); }
+.panel:hover { box-shadow: 0 6px 18px rgba(18,53,91,0.08); }
+.data-table tbody tr:hover td { background: #F3F8FE; }
+.check-chip:hover { border-color: var(--royal-blue); }
+.collapse-btn:hover { transform: scale(1.1); }
+.content { animation: fade-up 0.35s ease both; }
+.stat-grid .stat-card { animation: fade-up 0.4s ease both; }
+.stat-grid .stat-card:nth-child(2) { animation-delay: 0.05s; }
+.stat-grid .stat-card:nth-child(3) { animation-delay: 0.1s; }
+.stat-grid .stat-card:nth-child(4) { animation-delay: 0.15s; }
+.stat-grid .stat-card:nth-child(n+5) { animation-delay: 0.2s; }
+.login-card { animation: fade-up 0.45s ease both; }
+.modal-backdrop { animation: fade-in 0.18s ease both; }
+.modal-card { animation: pop-in 0.22s cubic-bezier(0.2, 0.9, 0.3, 1.15) both; }
+.platform-notice, .notice, .form-error { animation: fade-in 0.25s ease both; }
+.pulse { animation: pulse 1.4s ease-in-out infinite; }
+@keyframes fade-up { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
+@keyframes fade-in { from { opacity: 0; } to { opacity: 1; } }
+@keyframes pop-in { from { opacity: 0; transform: translateY(10px) scale(0.97); } to { opacity: 1; transform: none; } }
+@keyframes pulse { 0%, 100% { transform: scale(1); opacity: 1; } 50% { transform: scale(0.94); opacity: 0.75; } }
+@media (prefers-reduced-motion: reduce) {
+  .dia-root *, .dia-root *::before, .dia-root *::after { animation: none !important; transition: none !important; }
+}
 
 @media print {
   .no-print { display: none !important; }
@@ -3140,12 +3231,12 @@ a.btn-ghost { text-decoration: none; display: inline-block; }
 
 @media (max-width: 860px) {
   .shell { display: block; }
-  .sidebar { position: fixed; top: 0; left: 0; bottom: 0; z-index: 40; width: 240px !important; padding: 22px 16px !important; transform: translateX(-100%); transition: transform 0.2s ease; }
+  .sidebar { position: fixed; top: 0; left: 0; bottom: 0; z-index: 40; width: 264px !important; padding: 22px 16px !important; transform: translateX(-100%); transition: transform 0.2s ease; }
   .sidebar-open { transform: translateX(0); box-shadow: 8px 0 24px rgba(0,0,0,0.25); }
   .shell-collapsed .sidebar-brand { justify-content: flex-start; }
   .collapse-btn { display: none; }
   .sidebar-scrim { display: block; position: fixed; inset: 0; background: rgba(0,0,0,0.35); z-index: 39; }
-  .mobile-menu-btn { display: inline-flex; align-items: center; gap: 6px; margin: 16px 20px 0; background: var(--ink); color: #FAF7EF; border: none; padding: 9px 14px; border-radius: 3px; font-family: inherit; font-size: 13px; cursor: pointer; }
+  .mobile-menu-btn { display: inline-flex; align-items: center; gap: 6px; margin: 16px 20px 0; background: var(--ink); color: #fff; border: none; padding: 9px 14px; border-radius: 8px; font-family: inherit; font-size: 14.5px; cursor: pointer; }
   .content { padding: 20px; }
   .form-grid, .rc-meta, .profile-grid, .setup-grid, .reg-form-fields { grid-template-columns: 1fr; }
   .rc-meta { grid-template-columns: 1fr 1fr; }
