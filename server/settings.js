@@ -6,6 +6,7 @@
 const { bad, str, num, arr } = require("./util");
 
 const DEFAULT_SETTINGS = Object.freeze({
+  schoolType: "secondary",
   motto: "",
   location: "",
   colors: { primary: "#12355B", accent: "#E9A23B", banner: "#1E5BB8" },

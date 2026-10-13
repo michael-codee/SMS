@@ -182,11 +182,12 @@ function classPosition(db, pupil, term, avgFor) {
 }
 
 function ReportComments({ db, pupil, term, onEditComments }) {
+  const w = useWords();
   const c = (db.comments && db.comments[`${pupil.id}|${term}`]) || { teacher: "", principal: "" };
   return (
     <div className="rc-comments">
       <div><span>Class Teacher's Comment</span><p>{c.teacher || <span className="muted no-print">No comment yet.</span>}</p></div>
-      <div><span>Principal's Comment</span><p>{c.principal || <span className="muted no-print">No comment yet.</span>}</p></div>
+      <div><span>{w.head}'s Comment</span><p>{c.principal || <span className="muted no-print">No comment yet.</span>}</p></div>
       {onEditComments && (
         <div className="no-print" style={{ gridColumn: "1 / -1" }}>
           <button className="btn-ghost btn-small" onClick={() => onEditComments({ pupilId: pupil.id, term })}>Edit comments</button>
@@ -197,6 +198,7 @@ function ReportComments({ db, pupil, term, onEditComments }) {
 }
 
 function ReportCard({ db, pupil, term = CURRENT_TERM, onEditComments }) {
+  const w = useWords();
   const cls = db.classes.find((c) => c.id === pupil.classId);
   const parts = db.settings.assessment;
 
@@ -270,13 +272,14 @@ function ReportCard({ db, pupil, term = CURRENT_TERM, onEditComments }) {
       <div className="rc-sign">
         <div><div className="sig-line" /><span>Class Teacher's Signature</span></div>
         <div className="rc-stamp"><Seal size={64} /><span>Official Stamp</span></div>
-        <div><div className="sig-line" /><span>Principal's Signature</span></div>
+        <div><div className="sig-line" /><span>{w.head}'s Signature</span></div>
       </div>
     </div>
   );
 }
 
 function CombinedReportCard({ db, pupil, onEditComments }) {
+  const w = useWords();
   const cls = db.classes.find((c) => c.id === pupil.classId);
 
   const cumulativeAvg = (pupilId) => {
@@ -361,7 +364,7 @@ function CombinedReportCard({ db, pupil, onEditComments }) {
       <div className="rc-sign">
         <div><div className="sig-line" /><span>Class Teacher's Signature</span></div>
         <div className="rc-stamp"><Seal size={64} /><span>Official Stamp</span></div>
-        <div><div className="sig-line" /><span>Principal's Signature</span></div>
+        <div><div className="sig-line" /><span>{w.head}'s Signature</span></div>
       </div>
     </div>
   );
@@ -418,6 +421,7 @@ function RegistrationForm({ db, kind, id }) {
 }
 
 function CommentsModal({ db, pupilId, term, onClose, onSave }) {
+  const w = useWords();
   const pupil = db.pupils.find((p) => p.id === pupilId);
   const existing = (db.comments && db.comments[`${pupilId}|${term}`]) || { teacher: "", principal: "" };
   const role = db.me.role;
@@ -453,7 +457,7 @@ function CommentsModal({ db, pupilId, term, onClose, onSave }) {
           </label>
         )}
         {canPrincipal && (
-          <label className="form-span">Principal's comment
+          <label className="form-span">{w.head}'s comment
             <textarea rows={3} maxLength={600} value={principal} onChange={(e) => setPrincipal(e.target.value)} placeholder="e.g. Promoted to work harder next term. Well done." />
           </label>
         )}
@@ -603,6 +607,7 @@ function AttendanceModal({ db, classId, onClose, onSave }) {
 /* ================= Submit question modal ================= */
 
 function SubmitQuestionModal({ db, onClose, onSave }) {
+  const w = useWords();
   const teacher = db.teachers.find((t) => t.id === db.me.teacherId);
   const subjects = teacher?.subjects?.length ? teacher.subjects : db.subjects;
   const [subject, setSubject] = useState(subjects[0] || "");
@@ -613,14 +618,14 @@ function SubmitQuestionModal({ db, onClose, onSave }) {
 
   const submit = () => {
     if (!title.trim()) { setError("Give the question set a title."); return; }
-    if (!content.trim()) { setError("Enter the exam questions."); return; }
+    if (!content.trim()) { setError(`Enter the ${w.exam} questions.`); return; }
     run(() => onSave({ subject, title: title.trim(), content: content.trim(), marks: Number(marks) || 0 }));
   };
 
   return (
-    <Modal title="Submit Exam Questions" onClose={onClose} wide>
+    <Modal title={`Submit ${w.Exam} Questions`} onClose={onClose} wide>
       <p style={{ fontSize: 14.5, color: "var(--muted)", marginTop: 0 }}>
-        This will be sent to the Exam Officer for review and approval.
+        This will be sent to the {w.examOfficer} for review and approval.
       </p>
       <div className="form-grid">
         <label>Subject
@@ -641,7 +646,7 @@ function SubmitQuestionModal({ db, onClose, onSave }) {
       {error && <div className="form-error" style={{ marginTop: 12 }}>{error}</div>}
       <div className="modal-actions">
         <button className="btn-ghost" onClick={onClose}>Cancel</button>
-        <button className="btn-primary" disabled={busy} onClick={submit}>{busy ? "Sending…" : "Submit to Exam Officer"}</button>
+        <button className="btn-primary" disabled={busy} onClick={submit}>{busy ? "Sending…" : `Submit to ${w.examOfficer}`}</button>
       </div>
     </Modal>
   );
@@ -1082,6 +1087,7 @@ function ProprietorView({ db, view, setModal, act }) {
 }
 
 function PrincipalView({ db, view, setModal, act }) {
+  const w = useWords();
   if (view === "overview") {
     const submitted = db.classes.filter((c) =>
       db.pupils.filter((p) => p.classId === c.id).some((p) => db.subjects.some((s) => db.grades[gradeKey(p.id, s)]))
@@ -1090,7 +1096,7 @@ function PrincipalView({ db, view, setModal, act }) {
     const avgAttendance = att.length ? Math.round((att.reduce((s, a) => s + a.present / a.total, 0) / att.length) * 100) : null;
     return (
       <>
-        <h1>Principal Dashboard</h1>
+        <h1>{w.head} Dashboard</h1>
         <p className="lead">Academic overview for {CURRENT_TERM}, {CURRENT_YEAR}.</p>
         <div className="stat-grid">
           <StatCard label="Total Pupils" value={db.pupils.length} />
@@ -1445,6 +1451,14 @@ const ROLE_LABELS = {
   teacher: "Teacher", pupil: "Pupil", parent: "Parent", examofficer: "Exam Officer",
 };
 
+/* Pre-primary schools call some roles by other names (the school type is chosen when the school is added). */
+function useWords() {
+  const pre = useSchool().schoolType === "preprimary";
+  const head = pre ? "Head Teacher" : "Principal";
+  const examOfficer = pre ? "Assessment Officer" : "Exam Officer";
+  return { head, examOfficer, exam: pre ? "assessment" : "exam", Exam: pre ? "Assessment" : "Exam", roles: { ...ROLE_LABELS, principal: head, examofficer: examOfficer } };
+}
+
 function accountDetail(db, u) {
   if (u.role === "teacher") {
     const t = db.teachers.find((x) => x.id === u.teacherId);
@@ -1462,6 +1476,7 @@ function accountDetail(db, u) {
 }
 
 function AccountsView({ db, setModal, act }) {
+  const w = useWords();
   const [search, setSearch] = useState("");
   const [roleFilter, setRoleFilter] = useState("");
   const [error, setError] = useState("");
@@ -1490,7 +1505,7 @@ function AccountsView({ db, setModal, act }) {
             <input className="audit-search" value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search accounts…" />
             <select value={roleFilter} onChange={(e) => setRoleFilter(e.target.value)} aria-label="Filter by role">
               <option value="">All roles</option>
-              {Object.entries(ROLE_LABELS).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
+              {Object.entries(w.roles).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
             </select>
             <button className="btn-primary btn-small" onClick={() => setModal({ type: "account" })}>Create account</button>
           </div>
@@ -1508,7 +1523,7 @@ function AccountsView({ db, setModal, act }) {
                   <tr key={u.id}>
                     <td className="mono">{u.username}</td>
                     <td>{u.name}</td>
-                    <td><Pill tone={u.role === "proprietor" ? "gold" : undefined}>{ROLE_LABELS[u.role]}</Pill></td>
+                    <td><Pill tone={u.role === "proprietor" ? "gold" : undefined}>{w.roles[u.role]}</Pill></td>
                     <td className="muted">{accountDetail(db, u)}</td>
                     <td>
                       <Pill tone={isLocked ? "red" : isActive ? "gold" : "red"}>{isLocked ? "Locked" : isActive ? (u.mustChangePassword ? "Not signed in yet" : "Active") : "Disabled"}</Pill>
@@ -1729,6 +1744,7 @@ function ResetPasswordModal({ username, name, tempPassword, onClose, created, sc
 }
 
 function CreateAccountModal({ db, onClose, onSave }) {
+  const w = useWords();
   const [role, setRole] = useState("teacher");
   const [name, setName] = useState("");
   const [username, setUsername] = useState("");
@@ -1779,7 +1795,7 @@ function CreateAccountModal({ db, onClose, onSave }) {
       <div className="form-grid">
         <label>Role
           <select value={role} onChange={(e) => { setRole(e.target.value); setTeacherId(""); setPupilId(""); }}>
-            {Object.entries(ROLE_LABELS).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
+            {Object.entries(w.roles).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
           </select>
         </label>
 
@@ -2450,6 +2466,7 @@ function BursarView({ db, view, setModal }) {
 }
 
 function TeacherView({ db, view, setModal }) {
+  const w = useWords();
   const teacher = db.teachers.find((t) => t.id === db.me.teacherId);
   const cls = db.classes.find((c) => c.id === teacher?.classId);
   const pupils = db.pupils.filter((p) => p.classId === teacher?.classId);
@@ -2551,14 +2568,14 @@ function TeacherView({ db, view, setModal }) {
     return (
       <>
         <h1>Submit Questions</h1>
-        <p className="lead">Send your exam questions to the Exam Officer for review.</p>
+        <p className="lead">Send your {w.exam} questions to the {w.examOfficer} for review.</p>
         <Panel title="My submissions" action={<button className="btn-primary btn-small" onClick={() => setModal({ type: "submitquestion" })}>Submit new question</button>}>
           {mySubmissions.length === 0 ? (
             <p className="muted" style={{ padding: "8px 0" }}>You haven't submitted any questions yet.</p>
           ) : (
             <div className="table-scroll">
               <table className="data-table">
-                <thead><tr><th>Title</th><th>Subject</th><th>Marks</th><th>Submitted</th><th>Status</th><th>Exam Officer's comment</th></tr></thead>
+                <thead><tr><th>Title</th><th>Subject</th><th>Marks</th><th>Submitted</th><th>Status</th><th>{w.examOfficer}'s comment</th></tr></thead>
                 <tbody>
                   {mySubmissions.slice().reverse().map((q) => (
                     <tr key={q.id}>
@@ -2611,6 +2628,7 @@ function AnnouncementsView({ db, setModal, act, canPost }) {
 }
 
 function ExamOfficerView({ db, view, setModal }) {
+  const w = useWords();
   const submissions = db.questionSubmissions || [];
   const statusTone = { Pending: undefined, Reviewed: "gold", Approved: "gold", Rejected: "red" };
 
@@ -2620,7 +2638,7 @@ function ExamOfficerView({ db, view, setModal }) {
     const rejected = submissions.filter((q) => q.status === "Rejected").length;
     return (
       <>
-        <h1>Exam Officer Dashboard</h1>
+        <h1>{w.examOfficer} Dashboard</h1>
         <p className="lead">Question submissions from teachers. Current term: {CURRENT_TERM}, {CURRENT_YEAR}.</p>
         <div className="stat-grid">
           <StatCard label="Total Submissions" value={submissions.length} />
@@ -3007,7 +3025,7 @@ export default function App() {
   }, [status, timeoutMinutes, signedOut]);
 
   const brand = db
-    ? { code: db.school.code, name: db.school.name, motto: db.settings.motto, location: db.settings.location, logoUrl: db.school.logoUrl, colors: db.settings.colors }
+    ? { code: db.school.code, name: db.school.name, schoolType: db.settings.schoolType, motto: db.settings.motto, location: db.settings.location, logoUrl: db.school.logoUrl, colors: db.settings.colors }
     : loginBrand
       ? { code: loginBrand.code, name: loginBrand.name, motto: loginBrand.motto, location: loginBrand.location, logoUrl: loginBrand.logoUrl, colors: loginBrand.colors }
       : { code: "", name: APP_NAME, motto: "", location: "", logoUrl: APP_LOGO, colors: null };
@@ -3393,7 +3411,7 @@ const CSS = `
 .rc-summary span { font-size: 10.5px; color: var(--muted); text-transform: uppercase; }
 .rc-summary b { font-size: 18px; color: var(--ink); }
 .rc-comments { display: flex; flex-direction: column; gap: 12px; margin-bottom: 26px; }
-.rc-comments span { font-size: 11px; font-weight: 600; color: var(--ink); text-transform: uppercase; letter-spacing: 0.3px; }
+.rc-comments > div > span { font-size: 11px; font-weight: 600; color: var(--ink); text-transform: uppercase; letter-spacing: 0.3px; }
 .rc-comments p { margin: 4px 0 0; font-size: 13px; font-style: italic; color: var(--text); }
 .rc-sign { display: flex; align-items: flex-end; justify-content: space-between; gap: 18px; }
 .rc-sign > div { display: flex; flex-direction: column; align-items: center; gap: 6px; flex: 1; }

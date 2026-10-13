@@ -10,6 +10,7 @@ const { promisify } = require("node:util");
 const db = require("./db");
 const { HttpError, sha256, newId } = require("./util");
 const settingsLib = require("./settings");
+const schoolTypes = require("./schoolTypes");
 const platformSettings = require("./platformSettings");
 
 const scrypt = promisify(crypto.scrypt);
@@ -136,6 +137,7 @@ async function resolveSession(token, { active }) {
       await db.query("DELETE FROM sessions WHERE token_hash = $1", [h]);
       return null;
     }
+    u.roleLabel = schoolTypes.roleLabel(u.role, s.school_settings, ROLE_LABELS);
     principal = { kind: "school", schoolId: s.school_id, schoolCode: s.school_code, user: u };
   }
 
@@ -186,6 +188,7 @@ async function schoolLogin({ schoolCode, username, password, ip, userAgent }) {
 
   await db.query("UPDATE users SET failed_attempts = 0, last_login_at = now() WHERE id = $1", [u.id]);
   const session = await createSession({ kind: "school", schoolId: school.id, userId: u.id, ip, userAgent });
+  u.roleLabel = schoolTypes.roleLabel(u.role, school.settings, ROLE_LABELS);
   await audit(school.id, actorLabel(u), "Logged in", `Username: ${u.username}`, ip);
   return { session, user: u };
 }
@@ -251,7 +254,7 @@ const ROLE_LABELS = {
   teacher: "Teacher", pupil: "Pupil", parent: "Parent", examofficer: "Exam Officer",
 };
 function actorLabel(u) {
-  return `${u.name} (${ROLE_LABELS[u.role] || u.role})`;
+  return `${u.name} (${u.roleLabel || ROLE_LABELS[u.role] || u.role})`;
 }
 
 async function audit(schoolId, actor, action, details, ip, client) {

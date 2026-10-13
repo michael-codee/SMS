@@ -118,7 +118,7 @@ function ProfilePanel({ db, act }) {
         {color("accent", "Highlight colour (buttons)")}
         {color("banner", "Sign-in banner colour")}
       </div>
-      <p className="muted" style={{ fontSize: 14 }}>New pupils get admission numbers like {prefix || db.school.code}/{String(s.currentYear).slice(0, 4)}/001. Your school code for signing in is <b className="mono">{db.school.code}</b>.</p>
+      <p className="muted" style={{ fontSize: 14 }}>New pupils get admission numbers like {prefix || db.school.code}/{String(s.currentYear).slice(0, 4)}/001. Your school code for signing in is <b className="mono">{db.school.code}</b>. School type: <b>{db.settings.schoolType === "preprimary" ? "Pre-Primary School" : "Secondary School"}</b> (set by the platform administrator).</p>
       <SaveBar state={state} onSave={() => save("updateSettings", { patch: { name, motto, location, currency, admissionPrefix: prefix, colors } })} label="Save profile" />
     </Panel>
   );
