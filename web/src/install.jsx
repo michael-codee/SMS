@@ -33,7 +33,7 @@ export function useSchoolManifest(code) {
   }, [code]);
 }
 
-const isInstalled = () => window.matchMedia?.("(display-mode: standalone)").matches || window.navigator.standalone === true;
+export const isInstalled = () => window.matchMedia?.("(display-mode: standalone)").matches || window.navigator.standalone === true;
 const isIos = () => /iphone|ipad|ipod/i.test(navigator.userAgent) || (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
 
 export function InstallButton({ className = "btn-ghost btn-small", block = false }) {
