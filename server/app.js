@@ -28,7 +28,8 @@ const SECURITY_HEADERS = {
   "X-Content-Type-Options": "nosniff",
   "X-Frame-Options": "DENY",
   "Referrer-Policy": "same-origin",
-  "Permissions-Policy": "camera=(), microphone=(), geolocation=()",
+  // the camera is allowed on this site only, for taking ID card photos
+  "Permissions-Policy": "camera=(self), microphone=(), geolocation=()",
   "Cross-Origin-Opener-Policy": "same-origin",
   "Content-Security-Policy": [
     "default-src 'self'",

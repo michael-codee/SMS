@@ -126,7 +126,7 @@ function Panel({ title, action, children }) {
 function Modal({ title, onClose, children, wide }) {
   return (
     <div className="modal-backdrop" onClick={onClose}>
-      <div className={"modal-card" + (wide ? " modal-wide" : "")} onClick={(e) => e.stopPropagation()}>
+      <div className={"modal-card" + (wide === "xl" ? " modal-xl" : wide ? " modal-wide" : "")} onClick={(e) => e.stopPropagation()}>
         <div className="modal-head">
           <h3>{title}</h3>
           <button className="icon-btn" onClick={onClose} aria-label="Close">✕</button>
@@ -227,7 +227,7 @@ function ReportCard({ db, pupil, term = CURRENT_TERM, onEditComments }) {
 
       <div className="rc-meta">
         <div><span>Name</span><b>{pupil.name}</b></div>
-        <div><span>Admission No.</span><b>{pupil.admissionNo}</b></div>
+        <div><span>ID / Admission No.</span><b>{pupil.admissionNo}</b></div>
         <div><span>Class</span><b>{cls?.name}</b></div>
         <div><span>Attendance</span><b>{att.present}/{att.total} days</b></div>
       </div>
@@ -316,7 +316,7 @@ function CombinedReportCard({ db, pupil, onEditComments }) {
 
       <div className="rc-meta">
         <div><span>Name</span><b>{pupil.name}</b></div>
-        <div><span>Admission No.</span><b>{pupil.admissionNo}</b></div>
+        <div><span>ID / Admission No.</span><b>{pupil.admissionNo}</b></div>
         <div><span>Class</span><b>{cls?.name}</b></div>
         <div><span>Attendance</span><b>{att.present}/{att.total} days</b></div>
       </div>
@@ -706,7 +706,7 @@ function ReceiptModal({ db, receipt, onClose }) {
         <DocHeader title={`Official Receipt ${receipt.receiptNo}`} />
         <div className="profile-grid">
           <div><span>Pupil</span><b>{pupil?.name}</b></div>
-          <div><span>Admission No.</span><b>{pupil?.admissionNo}</b></div>
+          <div><span>ID / Admission No.</span><b>{pupil?.admissionNo}</b></div>
           <div><span>Class</span><b>{cls?.name || "—"}</b></div>
           <div><span>Date</span><b>{receipt.date}</b></div>
           <div><span>Amount received</span><b>{money(receipt.amount)}</b></div>
@@ -870,7 +870,7 @@ function LoginScreen({ onLoggedIn, notice, onDismissNotice, onBrand }) {
         </div>
         <div className="login-form">
           <label>School code
-            <input value={schoolCode} onChange={(e) => setSchoolCode(e.target.value)} onKeyDown={onKeyDown} placeholder="e.g. TISL" autoCapitalize="characters" autoComplete="organization" />
+            <input value={schoolCode} onChange={(e) => setSchoolCode(e.target.value)} onKeyDown={onKeyDown} placeholder="e.g. 48213907" autoCapitalize="characters" autoComplete="organization" />
           </label>
           <label>Username
             <input value={username} onChange={(e) => setUsername(e.target.value)} onKeyDown={onKeyDown} placeholder="Your username" autoComplete="username" autoCapitalize="none" autoFocus={!!schoolCode} />
@@ -883,7 +883,6 @@ function LoginScreen({ onLoggedIn, notice, onDismissNotice, onBrand }) {
           <p className="muted" style={{ fontSize: 14.5, margin: 0, textAlign: "center" }}>Forgot your password? Ask your school's Proprietor to reset it.</p>
           {support && <p className="muted" style={{ fontSize: 14.5, margin: 0, textAlign: "center" }}>Need help? {support}</p>}
           <InstallButton block />
-          <p className="muted" style={{ fontSize: 13.5, margin: 0, textAlign: "center" }}><a className="text-link" href="/platform">Platform administrator sign-in</a> (no school code needed)</p>
         </div>
       </div>
     </div>
@@ -950,12 +949,12 @@ function ChangePasswordScreen({ db, forced, onDone, onCancel, onLogout }) {
 
 const NAV = {
   proprietor: [["overview", "Overview"], ["staff", "Staff"], ["pupils", "Pupils"], ["reports", "Pupil Reports"], ["staffreports", "Staff Reports"], ["finance", "Finance"], ["announcements", "Announcements"], ["accounts", "User Accounts"], ["schoolreports", "Reports"], ["auditlog", "Audit Log"], ["setup", "School Setup"], ["settings", "Security & Backups"]],
-  principal: [["overview", "Overview"], ["staff", "Staff"], ["pupils", "Pupils"], ["academics", "Academics"], ["announcements", "Announcements"]],
+  principal: [["overview", "Overview"], ["staff", "Staff"], ["pupils", "Pupils"], ["academics", "Academics"], ["finance", "Fees & Receipts"], ["announcements", "Announcements"]],
   bursar: [["overview", "Overview"], ["payments", "Payments"], ["announcements", "Announcements"]],
   teacher: [["overview", "My Class"], ["grades", "Grades & Report Cards"], ["attendance", "Attendance"], ["questions", "Submit Questions"], ["announcements", "Announcements"]],
   pupil: [["overview", "My Profile"], ["reportcard", "My Report Card"]],
   parent: [["overview", "My Children"], ["reportcard", "Report Cards"]],
-  examofficer: [["overview", "Overview"], ["questions", "Question Submissions"], ["announcements", "Announcements"]],
+  examofficer: [["overview", "Overview"], ["questions", "Question Submissions"], ["reportcards", "Report Cards"], ["announcements", "Announcements"]],
 };
 
 function Shell({ user, view, setView, onLogout, onChangePassword, children }) {
@@ -1108,6 +1107,7 @@ function PrincipalView({ db, view, setModal, act }) {
   if (view === "staff") return <StaffView db={db} />;
   if (view === "pupils") return <PupilsView db={db} />;
   if (view === "academics") return <AcademicsOverview db={db} setModal={setModal} />;
+  if (view === "finance") return <FinanceOverview db={db} setModal={setModal} allowRecord={false} />;
   if (view === "announcements") return <AnnouncementsView db={db} setModal={setModal} act={act} canPost />;
   return null;
 }
@@ -1876,6 +1876,7 @@ function ParentChildrenModal({ db, userId, onClose, onSave }) {
 }
 
 function PhotoPicker({ photo, setPhoto, setError }) {
+  const [camera, setCamera] = useState(false);
   const handlePhoto = async (e) => {
     try {
       setPhoto(await readImageFile(e.target.files?.[0]));
@@ -1888,11 +1889,92 @@ function PhotoPicker({ photo, setPhoto, setError }) {
       <div className="id-photo-preview">
         {photo ? <img src={photo} alt="ID preview" /> : <span>No photo</span>}
       </div>
-      <label className="id-photo-input">ID card photo (optional)
-        <input type="file" accept="image/png,image/jpeg,image/gif,image/webp" onChange={handlePhoto} />
-      </label>
-      {photo && <button type="button" className="btn-ghost btn-small" onClick={() => setPhoto("")}>Remove photo</button>}
+      <div className="id-photo-input">ID card photo (optional)
+        <div className="photo-buttons">
+          <label className="btn-ghost btn-small file-btn">
+            <Icon name="upload" size={16} /> Upload
+            <input type="file" accept="image/png,image/jpeg,image/gif,image/webp" onChange={handlePhoto} />
+          </label>
+          <button type="button" className="btn-ghost btn-small btn-icon" onClick={() => setCamera(true)}><Icon name="camera" size={16} /> Take photo</button>
+          {photo && <button type="button" className="btn-danger btn-small" onClick={() => setPhoto("")}>Remove</button>}
+        </div>
+      </div>
+      {camera && <CameraModal onClose={() => setCamera(false)} onTaken={(dataUrl) => { setPhoto(dataUrl); setCamera(false); }} />}
     </div>
+  );
+}
+
+/*
+ * Take a photo with the computer's or phone's camera. The picture stays in the browser until the form is
+ * saved; nothing is recorded or sent while the camera is on. Where the browser cannot use the camera,
+ * the phone's own camera app is offered instead.
+ */
+function CameraModal({ onClose, onTaken }) {
+  const videoRef = React.useRef(null);
+  const [error, setError] = useState("");
+  const [ready, setReady] = useState(false);
+  const [facing, setFacing] = useState("user");
+
+  useEffect(() => {
+    let stream = null;
+    let cancelled = false;
+    setReady(false);
+    setError("");
+    if (!navigator.mediaDevices?.getUserMedia) {
+      setError("This browser cannot use the camera here. Use the phone camera button instead.");
+      return undefined;
+    }
+    navigator.mediaDevices.getUserMedia({ video: { facingMode: facing, width: { ideal: 960 }, height: { ideal: 960 } }, audio: false })
+      .then((s) => {
+        if (cancelled) { s.getTracks().forEach((t) => t.stop()); return; }
+        stream = s;
+        if (videoRef.current) { videoRef.current.srcObject = s; videoRef.current.play().catch(() => {}); }
+        setReady(true);
+      })
+      .catch((e) => setError(e && e.name === "NotAllowedError"
+        ? "Camera access was refused. Allow the camera for this site in the browser's settings, or use the phone camera button."
+        : "No camera was found, or another app is using it. Use the phone camera button instead."));
+    return () => {
+      cancelled = true;
+      if (stream) stream.getTracks().forEach((t) => t.stop());
+    };
+  }, [facing]);
+
+  const capture = () => {
+    const v = videoRef.current;
+    if (!v || !v.videoWidth) return;
+    // a square from the middle, at most 600 pixels, like an uploaded photo
+    const side = Math.min(v.videoWidth, v.videoHeight);
+    const out = Math.min(600, side);
+    const canvas = document.createElement("canvas");
+    canvas.width = out;
+    canvas.height = out;
+    const ctx = canvas.getContext("2d");
+    if (facing === "user") { ctx.translate(out, 0); ctx.scale(-1, 1); }
+    ctx.drawImage(v, (v.videoWidth - side) / 2, (v.videoHeight - side) / 2, side, side, 0, 0, out, out);
+    onTaken(canvas.toDataURL("image/jpeg", 0.85));
+  };
+
+  const fromPhoneCamera = async (e) => {
+    try { onTaken(await readImageFile(e.target.files?.[0])); } catch (err) { setError(err.message); }
+  };
+
+  return (
+    <Modal title="Take an ID card photo" onClose={onClose} wide>
+      <div className="camera-frame">
+        <video ref={videoRef} playsInline muted className={facing === "user" ? "mirrored" : ""} />
+        {!ready && !error && <span className="camera-wait">Starting the camera…</span>}
+      </div>
+      {error && <div className="form-error" style={{ marginTop: 12 }}>{error}</div>}
+      <p className="muted" style={{ fontSize: 14 }}>Centre the face in the square, in good light, then press Take photo.</p>
+      <div className="modal-actions" style={{ flexWrap: "wrap" }}>
+        <label className="btn-ghost file-btn">Use phone camera
+          <input type="file" accept="image/*" capture="user" onChange={fromPhoneCamera} />
+        </label>
+        {ready && <button className="btn-ghost" onClick={() => setFacing(facing === "user" ? "environment" : "user")}>Switch camera</button>}
+        <button className="btn-primary" disabled={!ready} onClick={capture}>Take photo</button>
+      </div>
+    </Modal>
   );
 }
 
@@ -1908,6 +1990,8 @@ function RegisterPupilModal({ db, onClose, onSave, editId }) {
   const [placeOfBirth, setPlaceOfBirth] = useState(existing?.placeOfBirth || "");
   const [photo, setPhoto] = useState(existing?.photo || "");
   const [active, setActive] = useState(existing ? existing.active !== false : true);
+  const suggested = existing ? existing.admissionNo : db.nextAdmissionNo || "";
+  const [idNo, setIdNo] = useState(suggested);
   const { busy, error, setError, run } = useSave(null);
 
   const submit = () => {
@@ -1915,6 +1999,7 @@ function RegisterPupilModal({ db, onClose, onSave, editId }) {
     const body = {
       name: name.trim(), classId, parentName: parentName.trim(),
       address: address.trim(), telephone: telephone.trim(), dob, placeOfBirth: placeOfBirth.trim(), photo: photo || null,
+      admissionNo: idNo.trim() || undefined,
     };
     run(async () => {
       if (existing) {
@@ -1931,7 +2016,7 @@ function RegisterPupilModal({ db, onClose, onSave, editId }) {
     <Modal title={existing ? `Edit pupil — ${existing.admissionNo}` : "Register a New Pupil"} onClose={() => onClose()} wide>
       {!existing && (
         <p style={{ fontSize: 14.5, color: "var(--muted)", marginTop: 0 }}>
-          This adds the pupil to school records, and an admission number is generated automatically.
+          This adds the pupil to school records. An ID number is suggested; keep it or type your own.
           To also give them a login, create an account for them afterwards from User Accounts.
         </p>
       )}
@@ -1939,6 +2024,12 @@ function RegisterPupilModal({ db, onClose, onSave, editId }) {
       <div className="form-grid">
         <label className="form-span">Full name
           <input value={name} maxLength={120} onChange={(e) => setName(e.target.value)} placeholder="e.g. Sallay Bangura" autoFocus />
+        </label>
+        <label>ID number (admission number)
+          <div className="input-with-btn">
+            <input value={idNo} maxLength={40} onChange={(e) => setIdNo(e.target.value)} placeholder={suggested || "e.g. TISL/2026/001"} className="mono" />
+            {idNo !== suggested && suggested && <button type="button" className="btn-ghost btn-small" onClick={() => setIdNo(suggested)}>{existing ? "Undo" : "Use suggested"}</button>}
+          </div>
         </label>
         <label>Class
           <select value={classId} onChange={(e) => setClassId(e.target.value)}>
@@ -2161,13 +2252,13 @@ function AcademicsOverview({ db, setModal }) {
   );
 }
 
-function ReportCardModal({ db, pupilId, setModal, onClose }) {
+function ReportCardModal({ db, pupilId, setModal, onClose, initialTerm, readOnly }) {
   const pupil = db.pupils.find((p) => p.id === pupilId);
-  const [term, setTerm] = useState(CURRENT_TERM);
+  const [term, setTerm] = useState(initialTerm || CURRENT_TERM);
   if (!pupil) return null;
-  const onEditComments = (t) => setModal({ type: "comments", ...t, back: { type: "reportcard", pupilId } });
+  const onEditComments = readOnly ? null : (t) => setModal({ type: "comments", ...t, back: { type: "reportcard", pupilId } });
   return (
-    <Modal title={pupil.name} onClose={onClose} wide>
+    <Modal title={pupil.name} onClose={onClose} wide="xl">
       <div className="row-actions">
         <label className="inline-label">Term
           <select value={term} onChange={(e) => setTerm(e.target.value)}>
@@ -2185,10 +2276,57 @@ function ReportCardModal({ db, pupilId, setModal, onClose }) {
   );
 }
 
+const paidInFull = (f) => f.termFee > 0 && f.paid >= f.termFee;
+
+/* A receipt for a pupil whose fees for the current term are fully paid: every payment, and the cleared balance. */
+function PaidInFullReceipt({ db, pupilId, onClose }) {
+  const pupil = db.pupils.find((p) => p.id === pupilId);
+  if (!pupil) return null;
+  const cls = db.classes.find((c) => c.id === pupil.classId);
+  const fee = db.fees[pupilId] || { termFee: 0, paid: 0 };
+  const payments = db.payments.filter((p) => p.pupilId === pupilId && p.term === CURRENT_TERM);
+  const termNo = TERMS.indexOf(CURRENT_TERM) + 1;
+  const ref = `PIF/${String(CURRENT_YEAR).slice(0, 4)}/T${termNo}/${pupil.admissionNo}`;
+  return (
+    <Modal title="Payment receipt" onClose={onClose} wide>
+      <div className="receipt print-receipt">
+        <DocHeader title={`Fees Receipt: Paid in Full · ${ref}`} />
+        <div className="profile-grid">
+          <div><span>Pupil</span><b>{pupil.name}</b></div>
+          <div><span>ID / Admission No.</span><b>{pupil.admissionNo}</b></div>
+          <div><span>Class</span><b>{cls?.name || "—"}</b></div>
+          <div><span>For</span><b>{CURRENT_TERM}, {CURRENT_YEAR}</b></div>
+          <div><span>Term fee</span><b>{money(fee.termFee)}</b></div>
+          <div><span>Total paid</span><b>{money(fee.paid)}</b></div>
+          <div><span>Balance</span><b>{money(Math.max(0, fee.termFee - fee.paid))}</b></div>
+          <div><span>Date issued</span><b>{new Date().toISOString().slice(0, 10)}</b></div>
+        </div>
+        <table className="rc-table" style={{ marginTop: 18 }}>
+          <thead><tr><th>Date</th><th>Receipt No.</th><th>Amount</th><th>Note</th></tr></thead>
+          <tbody>
+            {payments.length === 0 && <tr><td colSpan={4} className="rc-empty">No payments recorded this term.</td></tr>}
+            {payments.map((p) => <tr key={p.id}><td>{p.date}</td><td className="mono">{p.receiptNo}</td><td>{money(p.amount)}</td><td>{p.note || "—"}</td></tr>)}
+          </tbody>
+        </table>
+        <div className="paid-stamp">PAID IN FULL</div>
+        <div className="rc-sign" style={{ marginTop: 22 }}>
+          <div><div className="sig-line" /><span>Issued by ({db.me.name}, {db.me.title})</span></div>
+          <div className="rc-stamp"><Seal size={52} /><span>Official Stamp</span></div>
+        </div>
+      </div>
+      <div className="modal-actions">
+        <button className="btn-ghost" onClick={printModal}>Print receipt</button>
+        <button className="btn-primary" onClick={onClose}>Done</button>
+      </div>
+    </Modal>
+  );
+}
+
 function FinanceOverview({ db, setModal, allowRecord }) {
   const [search, setSearch] = useState("");
   const [classFilter, setClassFilter] = useState("");
   const [owingOnly, setOwingOnly] = useState(false);
+  const [paidOnly, setPaidOnly] = useState(false);
   const collected = Object.values(db.fees).reduce((s, f) => s + f.paid, 0);
   const totalDue = Object.values(db.fees).reduce((s, f) => s + f.termFee, 0);
   const outstanding = totalDue - collected;
@@ -2196,6 +2334,7 @@ function FinanceOverview({ db, setModal, allowRecord }) {
   const rows = db.pupils.filter((p) => {
     const f = db.fees[p.id] || { termFee: 0, paid: 0 };
     if (owingOnly && f.termFee - f.paid <= 0) return false;
+    if (paidOnly && !paidInFull(f)) return false;
     if (classFilter && p.classId !== classFilter) return false;
     return !q || p.name.toLowerCase().includes(q) || p.admissionNo.toLowerCase().includes(q);
   });
@@ -2217,7 +2356,8 @@ function FinanceOverview({ db, setModal, allowRecord }) {
               <option value="">All classes</option>
               {db.classes.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
             </select>
-            <label className="check-chip" style={{ flexDirection: "row", gap: 6 }}><input type="checkbox" checked={owingOnly} onChange={(e) => setOwingOnly(e.target.checked)} /> Owing only</label>
+            <label className="check-chip" style={{ flexDirection: "row", gap: 6 }}><input type="checkbox" checked={owingOnly} onChange={(e) => { setOwingOnly(e.target.checked); setPaidOnly(false); }} /> Owing only</label>
+            <label className="check-chip" style={{ flexDirection: "row", gap: 6 }}><input type="checkbox" checked={paidOnly} onChange={(e) => { setPaidOnly(e.target.checked); setOwingOnly(false); }} /> Paid in full</label>
             {allowRecord && <button className="btn-ghost btn-small" onClick={() => setModal({ type: "fee" })}>Set fees</button>}
             {allowRecord && <button className="btn-primary btn-small" onClick={() => setModal({ type: "payment" })}>Record payment</button>}
           </div>
@@ -2225,7 +2365,7 @@ function FinanceOverview({ db, setModal, allowRecord }) {
       >
         <div className="table-scroll">
           <table className="data-table">
-            <thead><tr><th>Pupil</th><th>Class</th><th>Term Fee</th><th>Paid</th><th>Balance</th>{allowRecord && <th></th>}</tr></thead>
+            <thead><tr><th>Pupil</th><th>Class</th><th>Term Fee</th><th>Paid</th><th>Balance</th><th></th></tr></thead>
             <tbody>
               {rows.map((p) => {
                 const f = db.fees[p.id] || { termFee: 0, paid: 0 };
@@ -2237,7 +2377,12 @@ function FinanceOverview({ db, setModal, allowRecord }) {
                     <td>{money(f.termFee)}</td>
                     <td>{money(f.paid)}</td>
                     <td><Pill tone={bal > 0 ? "red" : "gold"}>{money(bal)}</Pill></td>
-                    {allowRecord && <td><button className="btn-ghost btn-small" onClick={() => setModal({ type: "fee", pupilId: p.id })}>Set fee</button></td>}
+                    <td>
+                      <div className="row-actions" style={{ margin: 0, gap: 6, flexWrap: "nowrap" }}>
+                        {paidInFull(f) && <button className="btn-primary btn-small" onClick={() => setModal({ type: "paidreceipt", pupilId: p.id })}>Payment receipt</button>}
+                        {allowRecord && <button className="btn-ghost btn-small" onClick={() => setModal({ type: "fee", pupilId: p.id })}>Set fee</button>}
+                      </div>
+                    </td>
                   </tr>
                 );
               })}
@@ -2531,8 +2676,70 @@ function ExamOfficerView({ db, view, setModal }) {
     );
   }
 
+  if (view === "reportcards") return <ReportCardsView db={db} setModal={setModal} />;
   if (view === "announcements") return <AnnouncementsView db={db} />;
   return null;
+}
+
+/* Exam Officer: every pupil who has marks, with a button to generate (view and print) their report card. */
+function ReportCardsView({ db, setModal }) {
+  const [classFilter, setClassFilter] = useState("");
+  const [term, setTerm] = useState(CURRENT_TERM);
+  const [search, setSearch] = useState("");
+  const termsToCheck = term === "combined" ? TERMS : [term];
+  const q = search.trim().toLowerCase();
+  const rows = db.pupils
+    .filter((p) => (!classFilter || p.classId === classFilter) && (!q || p.name.toLowerCase().includes(q) || p.admissionNo.toLowerCase().includes(q)))
+    .map((p) => {
+      const totals = [];
+      for (const t of termsToCheck) for (const s of db.subjects) {
+        const g = db.grades[gradeKey(p.id, s, t)];
+        if (g) totals.push(totalScore(g));
+      }
+      return { p, subjects: totals.length, avg: totals.length ? totals.reduce((a, b) => a + b, 0) / totals.length : null };
+    });
+  const withGrades = rows.filter((r) => r.subjects > 0);
+  return (
+    <>
+      <h1>Report Cards</h1>
+      <p className="lead">Generate, check and print the report card of any pupil with marks.</p>
+      <div className="row-actions">
+        <input className="audit-search" value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search pupils…" />
+        <label className="inline-label">Class
+          <select value={classFilter} onChange={(e) => setClassFilter(e.target.value)}>
+            <option value="">All classes</option>
+            {db.classes.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
+          </select>
+        </label>
+        <label className="inline-label">Term
+          <select value={term} onChange={(e) => setTerm(e.target.value)}>
+            {TERMS.map((t) => <option key={t} value={t}>{t}{t === CURRENT_TERM ? " (current)" : ""}</option>)}
+            <option value="combined">Combined (all terms)</option>
+          </select>
+        </label>
+      </div>
+      <Panel title={`Pupils with marks (${withGrades.length} of ${rows.length})`}>
+        <div className="table-scroll">
+          <table className="data-table">
+            <thead><tr><th>Pupil</th><th>ID No.</th><th>Class</th><th>Subjects marked</th><th>Average</th><th></th></tr></thead>
+            <tbody>
+              {rows.length === 0 && <tr><td colSpan={6} className="rc-empty">No pupils match.</td></tr>}
+              {rows.map(({ p, subjects, avg }) => (
+                <tr key={p.id}>
+                  <td>{p.name}</td>
+                  <td className="mono">{p.admissionNo}</td>
+                  <td>{db.classes.find((c) => c.id === p.classId)?.name || "—"}</td>
+                  <td>{subjects || <span className="muted">None yet</span>}</td>
+                  <td>{avg === null ? "—" : avg.toFixed(1)}</td>
+                  <td>{subjects > 0 && <button className="btn-primary btn-small" onClick={() => setModal({ type: "reportcard", pupilId: p.id, term, readOnly: true })}>Generate report card</button>}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </Panel>
+    </>
+  );
 }
 
 function QuestionReviewModal({ db, id, onClose, onReview }) {
@@ -2587,7 +2794,7 @@ function PupilView({ db, view }) {
         <h1>My Profile</h1>
         <Panel title={pupil.name}>
           <div className="profile-grid">
-            <div><span>Admission No.</span><b>{pupil.admissionNo}</b></div>
+            <div><span>ID / Admission No.</span><b>{pupil.admissionNo}</b></div>
             <div><span>Class</span><b>{cls?.name}</b></div>
             <div><span>Attendance</span><b>{att.present}/{att.total} days</b></div>
             <div><span>Term</span><b>{CURRENT_TERM}, {CURRENT_YEAR}</b></div>
@@ -2652,7 +2859,7 @@ function ParentView({ db, view }) {
           <>
             <Panel title={child.name}>
               <div className="profile-grid">
-                <div><span>Admission No.</span><b>{child.admissionNo}</b></div>
+                <div><span>ID / Admission No.</span><b>{child.admissionNo}</b></div>
                 <div><span>Class</span><b>{cls?.name}</b></div>
                 <div><span>Attendance</span><b>{att.present}/{att.total} days</b></div>
                 <div><span>Fee Balance ({CURRENT_TERM})</span><b><Pill tone={fee.termFee - fee.paid > 0 ? "red" : "gold"}>{money(fee.termFee - fee.paid)}</Pill></b></div>
@@ -2858,6 +3065,7 @@ export default function App() {
               <PaymentModal db={db} onClose={close} onSave={(b) => act("recordPayment", b)} onReceipt={(receipt) => setModal({ type: "receipt", receipt })} />
             )}
             {modal?.type === "receipt" && <ReceiptModal db={db} receipt={modal.receipt} onClose={close} />}
+            {modal?.type === "paidreceipt" && <PaidInFullReceipt db={db} pupilId={modal.pupilId} onClose={close} />}
             {modal?.type === "fee" && <FeeModal db={db} pupilId={modal.pupilId} onClose={close} onSave={(b) => act("setFee", b)} />}
             {modal?.type === "announcement" && (
               <AnnouncementModal onClose={close} onSave={(b) => act("postAnnouncement", b)} />
@@ -2900,7 +3108,7 @@ export default function App() {
               <CommentsModal db={db} pupilId={modal.pupilId} term={modal.term} onClose={() => setModal(modal.back || null)} onSave={(b) => act("saveComment", b)} />
             )}
             {modal?.type === "reportcard" && (
-              <ReportCardModal db={db} pupilId={modal.pupilId} setModal={setModal} onClose={close} />
+              <ReportCardModal db={db} pupilId={modal.pupilId} setModal={setModal} onClose={close} initialTerm={modal.term} readOnly={modal.readOnly || user.role === "examofficer"} />
             )}
             {printTarget && (
               <div className="print-only-form">
@@ -3062,6 +3270,7 @@ const CSS = `
 .modal-backdrop { position: fixed; inset: 0; background: rgba(18,53,91,0.45); display: flex; align-items: center; justify-content: center; z-index: 50; padding: 20px; }
 .modal-card { background: #fff; border-radius: 14px; width: 100%; max-width: 420px; max-height: 90vh; overflow-y: auto; }
 .modal-wide { max-width: 560px; }
+.modal-xl { max-width: 880px; }
 .modal-head { display: flex; justify-content: space-between; align-items: center; padding: 16px 20px; border-bottom: 1px solid var(--border); }
 .modal-head h3 { margin: 0; font-family: 'Poppins', sans-serif; font-size: 18px; color: var(--ink); }
 .modal-body { padding: 18px 20px 20px; }
@@ -3151,6 +3360,16 @@ a.btn-ghost { text-decoration: none; display: inline-block; }
 .color-input input[type=color] { width: 44px; height: 36px; padding: 2px; }
 .saved-note { color: var(--ink); font-size: 14.5px; align-self: center; }
 .receipt { padding: 4px 0; }
+.photo-buttons { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 6px; }
+.file-btn { position: relative; overflow: hidden; display: inline-flex; align-items: center; justify-content: center; gap: 8px; cursor: pointer; }
+.file-btn input[type=file] { position: absolute; inset: 0; opacity: 0; cursor: pointer; font-size: 0; width: 100%; }
+.camera-frame { position: relative; width: 100%; aspect-ratio: 1 / 1; background: #0F1B2B; border-radius: 12px; overflow: hidden; display: flex; align-items: center; justify-content: center; }
+.camera-frame video { width: 100%; height: 100%; object-fit: cover; }
+.camera-frame video.mirrored { transform: scaleX(-1); }
+.camera-wait { position: absolute; color: #fff; font-size: 15px; }
+.input-with-btn { display: flex; gap: 8px; align-items: center; }
+.input-with-btn input { flex: 1; min-width: 0; }
+.paid-stamp { display: inline-block; margin-top: 16px; padding: 6px 16px; border: 3px solid var(--green); color: var(--green); font-family: 'Poppins', sans-serif; font-weight: 700; letter-spacing: 2px; border-radius: 8px; transform: rotate(-3deg); }
 
 /* ---------- look and feel: cards, inputs, icons ---------- */
 .dia-root h1, .dia-root h2, .dia-root h3 { letter-spacing: -0.2px; }

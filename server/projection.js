@@ -6,6 +6,7 @@
  */
 const settingsLib = require("./settings");
 const { actorLabel } = require("./auth");
+const { suggestAdmissionNo } = require("./admission");
 
 const ALL = ["proprietor", "principal", "bursar", "teacher", "pupil", "parent", "examofficer"];
 
@@ -32,6 +33,7 @@ async function visiblePupilIds(client, principal) {
     case "proprietor":
     case "principal":
     case "bursar":
+    case "examofficer":
       return null;
     case "teacher": {
       if (!u.teacher_id) return [];
@@ -144,7 +146,7 @@ async function build(client, principal) {
 
   // Pupils
   const pupilIds = await visiblePupilIds(client, principal);
-  const showPupils = role !== "examofficer";
+  const showPupils = true;
   const pupilCols = "id, name, admission_no, class_id, parent_name, address, telephone, dob, place_of_birth, active, updated_at, photo IS NOT NULL AS has_photo";
   let pupilRows = [];
   if (showPupils) {
@@ -152,9 +154,10 @@ async function build(client, principal) {
       ? (await client.query(`SELECT ${pupilCols} FROM pupils WHERE school_id = $1 AND active ORDER BY name`, [sid])).rows
       : (await client.query(`SELECT ${pupilCols} FROM pupils WHERE school_id = $1 AND id = ANY($2) ORDER BY name`, [sid, pupilIds])).rows;
   }
-  const fullPupil = role !== "bursar" && role !== "teacher";
+  const fullPupil = !["bursar", "teacher", "examofficer"].includes(role);
   out.pupils = pupilRows.map((p) => pupilOut(p, fullPupil));
   if (role === "proprietor") {
+    out.nextAdmissionNo = await suggestAdmissionNo(client, school);
     out.withdrawnPupils = (await client.query(`SELECT ${pupilCols} FROM pupils WHERE school_id = $1 AND NOT active ORDER BY name`, [sid])).rows.map((p) => pupilOut(p, true));
   }
   const ids = pupilRows.map((p) => p.id);
@@ -166,8 +169,8 @@ async function build(client, principal) {
     out.classes = out.classes.filter((c) => cls.has(c.id));
   }
 
-  // Grades, comments, attendance: everyone except bursar and exam officer
-  if (!["bursar", "examofficer"].includes(role) && ids.length) {
+  // Grades, comments, attendance: everyone except the bursar (the exam officer prints report cards)
+  if (role !== "bursar" && ids.length) {
     const grades = (await client.query(
       `SELECT pupil_id, subject, term, year, scores FROM grades WHERE school_id = $1 AND year = $2 AND pupil_id = ANY($3)`, [sid, year, ids])).rows;
     for (const g of grades) out.grades[`${g.pupil_id}|${g.subject}|${g.term}|${g.year}`] = g.scores;
@@ -200,8 +203,8 @@ async function build(client, principal) {
     }
   }
 
-  // Fees and payments: proprietor, bursar, parent (own children)
-  if (["proprietor", "bursar", "parent"].includes(role) && ids.length) {
+  // Fees and payments: proprietor, principal, bursar, parent (own children)
+  if (["proprietor", "principal", "bursar", "parent"].includes(role) && ids.length) {
     const fees = (await client.query(
       `SELECT pupil_id, amount FROM fees WHERE school_id = $1 AND term = $2 AND year = $3 AND pupil_id = ANY($4)`, [sid, settings.currentTerm, year, ids])).rows;
     const paid = (await client.query(

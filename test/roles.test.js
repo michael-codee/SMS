@@ -71,11 +71,25 @@ test("a bursar sees fees and payments but no marks", async () => {
   assert.deepEqual(d.users, []);
 });
 
-test("the exam officer sees question papers but no pupils", async () => {
+test("the exam officer sees question papers, and marks for report cards, but no home details or fees", async () => {
   const d = await people.exam.data();
-  assert.deepEqual(d.pupils, []);
-  assert.deepEqual(d.grades, {});
+  assert.ok(d.pupils.length > 1);
+  assert.equal(d.pupils[0].address, undefined);
+  assert.equal(d.pupils[0].photo, undefined);
+  assert.deepEqual(d.fees, {});
+  assert.deepEqual(d.payments, []);
+  assert.deepEqual(d.users, []);
   assert.ok(Array.isArray(d.questionSubmissions));
+  // and cannot open a pupil's photo
+  assert.equal((await people.exam.get(`/api/photo/pupil/${people.ids.kid1}`)).status, 404);
+});
+
+test("the principal sees fees and payments, to print receipts, but cannot record payments", async () => {
+  const d = await people.principal.data();
+  assert.ok(Object.keys(d.fees).length > 0);
+  assert.ok(d.payments.length > 0);
+  const r = await people.principal.action("recordPayment", { pupilId: people.ids.kid1, amount: 10 });
+  assert.equal(r.status, 403);
 });
 
 test("each role is refused actions outside its job", async () => {

@@ -22,10 +22,31 @@ async function listSchools() {
   return r.rows;
 }
 
+/* A new school's sign-in code: 8 random digits, never starting with 0, not used by another school. */
+async function newSchoolCode() {
+  for (let i = 0; i < 50; i++) {
+    const code = String(crypto.randomInt(10000000, 100000000));
+    if (!(await db.query("SELECT 1 FROM schools WHERE lower(code) = lower($1)", [code])).rowCount) return code;
+  }
+  throw new Error("could not find a free school code");
+}
+
+/* Admission numbers start with the school's initials, e.g. "The International School Ltd" gives TISL. */
+function initialsOf(name) {
+  const letters = String(name).replace(/[^A-Za-z0-9 ]/g, " ").split(/\s+/).filter(Boolean).map((w) => w[0].toUpperCase()).join("");
+  return letters.slice(0, 6) || "SCH";
+}
+
 async function createSchool(admin, body, ip) {
-  const code = str(body.code, "School code", { max: 20, required: true });
-  if (!CODE_RE.test(code)) throw bad("School code uses 2 to 20 letters, digits or dashes, e.g. TISL.");
   const name = str(body.name, "School name", { max: 120, required: true });
+  // the system chooses the code; a code may still be given directly through the API (tests, moving a school over)
+  let code;
+  if (body.code) {
+    code = str(body.code, "School code", { max: 20, required: true });
+    if (!CODE_RE.test(code)) throw bad("School code uses 2 to 20 letters, digits or dashes.");
+  } else {
+    code = await newSchoolCode();
+  }
   const proprietorName = str(body.proprietorName, "Proprietor's name", { max: 120, required: true });
   const proprietorUsername = str(body.proprietorUsername, "Proprietor's username", { max: 40, required: true });
   if (!/^[A-Za-z0-9._-]{3,40}$/.test(proprietorUsername)) throw bad("Usernames use 3 to 40 letters, digits, dots, dashes or underscores.");
@@ -37,7 +58,7 @@ async function createSchool(admin, body, ip) {
   const hash = await auth.hashPassword(temp);
   const ps = platformSettings.get();
   const settings = settingsLib.sanitize({
-    motto: body.motto || "", location: body.location || "", admissionPrefix: code.toUpperCase(),
+    motto: body.motto || "", location: body.location || "", admissionPrefix: body.code ? code.toUpperCase() : initialsOf(name),
     sessionTimeoutMinutes: ps.newSchoolSessionTimeoutMinutes, lockoutThreshold: ps.newSchoolLockoutThreshold,
   }, {});
 
